@@ -82,3 +82,12 @@ h1, h2, h3 {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+/* On touch devices, hover states can stick after a tap-then-scroll. Disable them. */
+@media (hover: none) {
+  .hover\:bg-\[var\(--bg-subtle\)\]:hover,
+  .hover\:bg-\[var\(--bg-active\)\]:hover,
+  .hover\:bg-\[\#D67402\]\/20:hover {
+    background-color: inherit !important;
+  }
+}
