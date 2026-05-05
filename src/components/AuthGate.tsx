@@ -14,13 +14,22 @@ export default function AuthGate({ children }: Props) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const nextUser = session?.user ?? null
-      setUser(nextUser)
+    // Resolve initial session from storage immediately (no network call)
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null)
       setLoading(false)
-      if (nextUser && event === 'SIGNED_IN' && !sessionStorage.getItem('synced')) {
-        sessionStorage.setItem('synced', '1')
-        await syncOnLogin()
+    }).catch(() => setLoading(false))
+
+    // Listen for sign-in / sign-out events going forward
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN') {
+        setUser(session?.user ?? null)
+        if (!sessionStorage.getItem('synced')) {
+          sessionStorage.setItem('synced', '1')
+          await syncOnLogin()
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null)
       }
     })
 
