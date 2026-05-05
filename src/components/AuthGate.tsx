@@ -27,7 +27,7 @@ export default function AuthGate({ children }: Props) {
     // Handle sign-in / sign-out and token refreshes going forward
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null)
-      if (event === 'SIGNED_IN' && !sessionStorage.getItem('synced')) {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user && !sessionStorage.getItem('synced')) {
         sessionStorage.setItem('synced', '1')
         syncOnLogin().catch(() => {})
       } else if (event === 'SIGNED_OUT') {
