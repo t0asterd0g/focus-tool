@@ -46,14 +46,13 @@ export async function pushToSupabase(data: AppData): Promise<{ projectsError: un
   const dbProjects = data.projects.map(p => projectToDb(p, user.id))
   const dbTasks = data.tasks.map(t => taskToDb(t, user.id))
 
-  const [projectsRes, tasksRes] = await Promise.all([
-    dbProjects.length > 0
-      ? supabase.from('projects').upsert(dbProjects, { onConflict: 'id' })
-      : Promise.resolve({ error: null }),
-    dbTasks.length > 0
-      ? supabase.from('tasks').upsert(dbTasks, { onConflict: 'id' })
-      : Promise.resolve({ error: null }),
-  ])
+  const projectsRes = dbProjects.length > 0
+    ? await supabase.from('projects').upsert(dbProjects, { onConflict: 'id' })
+    : { error: null }
+
+  const tasksRes = dbTasks.length > 0
+    ? await supabase.from('tasks').upsert(dbTasks, { onConflict: 'id' })
+    : { error: null }
 
   return { projectsError: projectsRes?.error, tasksError: tasksRes?.error }
 }
