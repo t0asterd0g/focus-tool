@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useLayoutEffect } from 'react'
 import { ArrowLeft, Plus, X, ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import { Task, updateTask, deleteTask } from '@/lib/store'
 import { Button, Input, Textarea, Badge, Card } from './ui'
@@ -14,6 +14,7 @@ interface Props {
 
 export default function TaskView({ task: initialTask, onBack, onUpdate, backLabel = 'Back to project', onDelete }: Props) {
   const [task, setTask] = useState(initialTask)
+  useLayoutEffect(() => { window.scrollTo(0, 0) }, [])
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(task.title)
   const [editingNotes, setEditingNotes] = useState(false)
