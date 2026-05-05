@@ -39,19 +39,12 @@ export default function AuthGate({ children }: Props) {
   }, [])
 
   async function syncOnLogin() {
-    console.log('[sync] starting')
     const remote = await pullFromSupabase()
     const local = loadData()
-    console.log('[sync] remote projects:', remote?.projects.length ?? 'null', 'local projects:', local.projects.length)
     if (remote && (remote.projects.length > 0 || remote.tasks.length > 0)) {
-      console.log('[sync] using remote data')
       saveData(remote)
     } else if (local.projects.length > 0 || local.tasks.length > 0) {
-      console.log('[sync] pushing local data to Supabase')
-      const result = await pushToSupabase(local)
-      console.log('[sync] push result:', result)
-    } else {
-      console.log('[sync] nothing to sync')
+      await pushToSupabase(local)
     }
   }
 

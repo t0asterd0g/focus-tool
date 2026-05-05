@@ -1,8 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Plus, BookOpen, LayoutDashboard, List, Circle, CheckCircle2, ArrowRight, LogOut, Download, Upload } from 'lucide-react'
+import { Plus, BookOpen, LayoutDashboard, List, Circle, CheckCircle2, ArrowRight, LogOut } from 'lucide-react'
 import { loadData, saveData, Project, Task, getActiveTask, completeTask } from '@/lib/store'
-import { pushToSupabase } from '@/lib/supabase'
 import ProjectCard from '@/components/ProjectCard'
 import ProjectView from '@/components/ProjectView'
 import NewProjectModal from '@/components/NewProjectModal'
@@ -58,27 +57,6 @@ function App({ onSignOut }: { onSignOut: () => void }) {
     }
   }
 
-  function handleExport() {
-    const data = loadData()
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'mastery-export.json'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const text = await file.text()
-    const data = JSON.parse(text)
-    saveData(data)
-    await pushToSupabase(data)
-    refresh()
-  }
-
   function goBack() {
     setActiveProject(null)
     setInitialTaskId(undefined)
@@ -117,20 +95,6 @@ function App({ onSignOut }: { onSignOut: () => void }) {
             <Button variant="primary" onClick={() => setShowNewProject(true)}>
               <Plus size={14} /> New project
             </Button>
-            <button
-              onClick={handleExport}
-              className="p-2 rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
-              title="Export data"
-            >
-              <Download size={15} />
-            </button>
-            <label
-              className="p-2 rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
-              title="Import data"
-            >
-              <Upload size={15} />
-              <input type="file" accept=".json" className="hidden" onChange={handleImport} />
-            </label>
             <button
               onClick={onSignOut}
               className="p-2 rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
