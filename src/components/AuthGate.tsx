@@ -14,10 +14,12 @@ export default function AuthGate({ children }: Props) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const timeout = setTimeout(() => setLoading(false), 5000)
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null)
       setLoading(false)
-    })
+      clearTimeout(timeout)
+    }).catch(() => { setLoading(false); clearTimeout(timeout) })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const nextUser = session?.user ?? null
