@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Mastery App
 
 **One task per project. Every day.**
@@ -48,3 +49,7 @@ All data is stored in `localStorage` under the key `mastery-app-v1`. To back up 
 ## Upgrading to a database later
 
 The entire data layer is in `src/lib/store.ts`. Every function reads/writes through `loadData()` and `saveData()`. To switch to Supabase or another backend, replace just those two functions.
+=======
+focus-tool
+A minimal app used to help you focus on key tasks or projects.
+>>>>>>> 873cc91aab052232b80bdb3a2370f31afada5680
