@@ -1,13 +1,22 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Plus, BookOpen, LayoutDashboard, List, Circle, CheckCircle2, ArrowRight } from 'lucide-react'
+import { Plus, BookOpen, LayoutDashboard, List, Circle, CheckCircle2, ArrowRight, LogOut } from 'lucide-react'
 import { loadData, saveData, Project, Task, getActiveTask, completeTask } from '@/lib/store'
 import ProjectCard from '@/components/ProjectCard'
 import ProjectView from '@/components/ProjectView'
 import NewProjectModal from '@/components/NewProjectModal'
+import AuthGate from '@/components/AuthGate'
 import { Button, CompleteForm } from '@/components/ui'
 
 export default function Home() {
+  return (
+    <AuthGate>
+      {(_user, onSignOut) => <App onSignOut={onSignOut} />}
+    </AuthGate>
+  )
+}
+
+function App({ onSignOut }: { onSignOut: () => void }) {
   const [projects, setProjects] = useState<Project[]>([])
   const [activeProject, setActiveProject] = useState<Project | null>(null)
   const [initialTaskId, setInitialTaskId] = useState<string | undefined>(undefined)
@@ -82,9 +91,18 @@ export default function Home() {
             <h1 className="text-4xl" style={{ fontFamily: 'var(--font-display)' }}>Mastery</h1>
             <p className="text-sm text-[var(--text-secondary)] mt-1">One task per project. Every day.</p>
           </div>
-          <Button variant="primary" onClick={() => setShowNewProject(true)}>
-            <Plus size={14} /> New project
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="primary" onClick={() => setShowNewProject(true)}>
+              <Plus size={14} /> New project
+            </Button>
+            <button
+              onClick={onSignOut}
+              className="p-2 rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
+              title="Sign out"
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
         </div>
 
         {/* Today's focus strip */}

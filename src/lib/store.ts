@@ -1,4 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
+import {
+  syncProject, syncTask, syncDeleteProject, syncDeleteTask, syncTasks,
+} from './supabase'
 
 export type TaskStatus = 'queued' | 'active' | 'done'
 export type TaskType = 'task' | 'idea'
@@ -66,6 +69,7 @@ export function createProject(title: string, goal: string, scope: string): Proje
   }
   data.projects.push(project)
   saveData(data)
+  syncProject(project).catch(() => {})
   return project
 }
 
@@ -75,6 +79,7 @@ export function updateProject(id: string, updates: Partial<Omit<Project, 'id' | 
   if (idx !== -1) {
     data.projects[idx] = { ...data.projects[idx], ...updates }
     saveData(data)
+    syncProject(data.projects[idx]).catch(() => {})
   }
 }
 
@@ -96,6 +101,7 @@ export function deleteProject(id: string): void {
   data.projects = data.projects.filter(p => p.id !== id)
   data.tasks = data.tasks.filter(t => t.projectId !== id)
   saveData(data)
+  syncDeleteProject(id).catch(() => {})
 }
 
 // Tasks
@@ -143,6 +149,7 @@ export function addTask(projectId: string, title: string, notes: string, type: T
   }
   data.tasks.push(task)
   saveData(data)
+  syncTask(task).catch(() => {})
   return task
 }
 
@@ -159,6 +166,8 @@ export function completeTask(taskId: string, reflection?: string): void {
     reflection: reflection || task.reflection || '',
   }
 
+  const affected = [data.tasks[taskIdx]]
+
   // Promote next queued task for this project
   const queued = data.tasks
     .filter(t => t.projectId === task.projectId && t.status === 'queued' && t.type === 'task')
@@ -166,10 +175,14 @@ export function completeTask(taskId: string, reflection?: string): void {
 
   if (queued.length > 0) {
     const nextIdx = data.tasks.findIndex(t => t.id === queued[0].id)
-    if (nextIdx !== -1) data.tasks[nextIdx].status = 'active'
+    if (nextIdx !== -1) {
+      data.tasks[nextIdx].status = 'active'
+      affected.push(data.tasks[nextIdx])
+    }
   }
 
   saveData(data)
+  syncTasks(affected).catch(() => {})
 }
 
 export function requeueTask(taskId: string): void {
@@ -184,15 +197,21 @@ export function requeueTask(taskId: string): void {
     completedAt: undefined,
   }
   saveData(data)
+  syncTask(data.tasks[taskIdx]).catch(() => {})
 }
 
 export function reorderTasks(projectId: string, taskIds: string[]): void {
   const data = loadData()
+  const reordered: Task[] = []
   taskIds.forEach((id, index) => {
     const idx = data.tasks.findIndex(t => t.id === id)
-    if (idx !== -1) data.tasks[idx].order = index + 1
+    if (idx !== -1) {
+      data.tasks[idx].order = index + 1
+      reordered.push(data.tasks[idx])
+    }
   })
   saveData(data)
+  syncTasks(reordered).catch(() => {})
 }
 
 export function updateTask(taskId: string, updates: Partial<Omit<Task, 'id' | 'projectId' | 'createdAt'>>): void {
@@ -201,6 +220,7 @@ export function updateTask(taskId: string, updates: Partial<Omit<Task, 'id' | 'p
   if (idx !== -1) {
     data.tasks[idx] = { ...data.tasks[idx], ...updates }
     saveData(data)
+    syncTask(data.tasks[idx]).catch(() => {})
   }
 }
 
@@ -208,6 +228,7 @@ export function deleteTask(taskId: string): void {
   const data = loadData()
   data.tasks = data.tasks.filter(t => t.id !== taskId)
   saveData(data)
+  syncDeleteTask(taskId).catch(() => {})
 }
 
 export function swapActiveTask(queuedTaskId: string): void {
@@ -218,9 +239,15 @@ export function swapActiveTask(queuedTaskId: string): void {
   const currentActiveIdx = data.tasks.findIndex(
     t => t.projectId === newActive.projectId && t.status === 'active' && t.type === 'task'
   )
-  if (currentActiveIdx !== -1) data.tasks[currentActiveIdx].status = 'queued'
+  const affected: Task[] = []
+  if (currentActiveIdx !== -1) {
+    data.tasks[currentActiveIdx].status = 'queued'
+    affected.push(data.tasks[currentActiveIdx])
+  }
   data.tasks[newActiveIdx].status = 'active'
+  affected.push(data.tasks[newActiveIdx])
   saveData(data)
+  syncTasks(affected).catch(() => {})
 }
 
 export function promoteIdea(taskId: string): void {
@@ -235,4 +262,5 @@ export function promoteIdea(taskId: string): void {
     status: hasActive ? 'queued' : 'active',
   }
   saveData(data)
+  syncTask(data.tasks[idx]).catch(() => {})
 }

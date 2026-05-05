@@ -687,6 +687,9 @@ video {
 .gap-4{
   gap: 1rem;
 }
+.gap-8{
+  gap: 2rem;
+}
 .overflow-hidden{
   overflow: hidden;
 }
@@ -769,6 +772,9 @@ video {
 }
 .p-5{
   padding: 1.25rem;
+}
+.p-2{
+  padding: 0.5rem;
 }
 .px-1\.5{
   padding-left: 0.375rem;
