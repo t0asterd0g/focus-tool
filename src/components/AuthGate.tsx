@@ -14,22 +14,24 @@ export default function AuthGate({ children }: Props) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Resolve initial session from storage immediately (no network call)
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null)
-      setLoading(false)
-    }).catch(() => setLoading(false))
+    // Read cached session from localStorage synchronously — no network call
+    try {
+      const raw = localStorage.getItem('sb-pdmucmsecmualoeljbav-auth-token')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        setUser(parsed?.user ?? null)
+      }
+    } catch {}
+    setLoading(false)
 
-    // Listen for sign-in / sign-out events going forward
+    // Handle sign-in / sign-out and token refreshes going forward
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN') {
-        setUser(session?.user ?? null)
-        if (!sessionStorage.getItem('synced')) {
-          sessionStorage.setItem('synced', '1')
-          await syncOnLogin()
-        }
+      setUser(session?.user ?? null)
+      if (event === 'SIGNED_IN' && !sessionStorage.getItem('synced')) {
+        sessionStorage.setItem('synced', '1')
+        syncOnLogin().catch(() => {})
       } else if (event === 'SIGNED_OUT') {
-        setUser(null)
+        sessionStorage.removeItem('synced')
       }
     })
 
