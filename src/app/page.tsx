@@ -184,7 +184,7 @@ function App({ onSignOut }: { onSignOut: () => void }) {
       {showNewProject && (
         <NewProjectModal
           onClose={() => setShowNewProject(false)}
-          onCreated={refresh}
+          onCreated={() => { refresh(); setTab('focused') }}
         />
       )}
     </div>

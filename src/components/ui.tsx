@@ -38,7 +38,7 @@ export function Input({ label, error, className = '', ...props }: InputProps) {
     <div className="flex flex-col gap-1">
       {label && <label className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">{label}</label>}
       <input
-        className={`w-full px-3 py-2.5 text-sm bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius-sm)] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)] transition-colors font-sans ${className}`}
+        className={`w-full px-3 py-2.5 text-base bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius-sm)] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)] transition-colors font-sans ${className}`}
         {...props}
       />
       {error && <p className="text-xs text-[var(--danger)]">{error}</p>}
@@ -57,7 +57,7 @@ export function Textarea({ label, hint, className = '', ...props }: TextareaProp
       {label && <label className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">{label}</label>}
       {hint && <p className="text-xs text-[var(--text-muted)]">{hint}</p>}
       <textarea
-        className={`w-full px-3 py-2.5 text-sm bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius-sm)] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)] transition-colors font-sans resize-none ${className}`}
+        className={`w-full px-3 py-2.5 text-base bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius-sm)] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)] transition-colors font-sans resize-none ${className}`}
         {...props}
       />
     </div>

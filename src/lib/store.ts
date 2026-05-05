@@ -66,6 +66,7 @@ export function createProject(title: string, goal: string, scope: string): Proje
     goal,
     scope,
     createdAt: new Date().toISOString(),
+    focused: true,
   }
   data.projects.push(project)
   saveData(data)
