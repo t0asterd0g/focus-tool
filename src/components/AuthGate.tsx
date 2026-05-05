@@ -18,7 +18,10 @@ export default function AuthGate({ children }: Props) {
       const nextUser = session?.user ?? null
       setUser(nextUser)
       setLoading(false)
-      if (nextUser && event === 'SIGNED_IN') await syncOnLogin()
+      if (nextUser && event === 'SIGNED_IN' && !sessionStorage.getItem('synced')) {
+        sessionStorage.setItem('synced', '1')
+        await syncOnLogin()
+      }
     })
 
     return () => subscription.unsubscribe()
