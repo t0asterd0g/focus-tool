@@ -39,21 +39,23 @@ export async function pullFromSupabase(): Promise<AppData | null> {
 }
 
 // Push full local data to Supabase (used for migration and full sync)
-export async function pushToSupabase(data: AppData): Promise<void> {
+export async function pushToSupabase(data: AppData): Promise<{ projectsError: unknown; tasksError: unknown }> {
   const user = await getUser()
-  if (!user) return
+  if (!user) return { projectsError: 'no user', tasksError: 'no user' }
 
   const dbProjects = data.projects.map(p => projectToDb(p, user.id))
   const dbTasks = data.tasks.map(t => taskToDb(t, user.id))
 
-  await Promise.all([
+  const [projectsRes, tasksRes] = await Promise.all([
     dbProjects.length > 0
       ? supabase.from('projects').upsert(dbProjects, { onConflict: 'id' })
-      : Promise.resolve(),
+      : Promise.resolve({ error: null }),
     dbTasks.length > 0
       ? supabase.from('tasks').upsert(dbTasks, { onConflict: 'id' })
-      : Promise.resolve(),
+      : Promise.resolve({ error: null }),
   ])
+
+  return { projectsError: projectsRes?.error, tasksError: tasksRes?.error }
 }
 
 // Sync a single project upsert
