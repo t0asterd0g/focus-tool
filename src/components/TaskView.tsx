@@ -14,7 +14,7 @@ interface Props {
 
 export default function TaskView({ task: initialTask, onBack, onUpdate, backLabel = 'Back to project', onDelete }: Props) {
   const [task, setTask] = useState(initialTask)
-  useLayoutEffect(() => { window.scrollTo(0, 0) }, [])
+  useLayoutEffect(() => { document.documentElement.scrollTop = 0; document.body.scrollTop = 0 }, [])
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(task.title)
   const [editingNotes, setEditingNotes] = useState(false)

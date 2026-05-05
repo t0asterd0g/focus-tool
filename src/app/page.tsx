@@ -25,7 +25,7 @@ function App({ onSignOut }: { onSignOut: () => void }) {
   const [compact, setCompact] = useState(false)
   const [tab, setTab] = useState<'focused' | 'other'>('focused')
 
-  useLayoutEffect(() => { window.scrollTo(0, 0) }, [activeProject])
+  useLayoutEffect(() => { document.documentElement.scrollTop = 0; document.body.scrollTop = 0 }, [activeProject])
 
   useEffect(() => {
     setMounted(true)
