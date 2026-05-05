@@ -18,8 +18,8 @@ export async function signOut() {
 }
 
 export async function getUser() {
-  const { data } = await supabase.auth.getUser()
-  return data.user
+  const { data } = await supabase.auth.getSession()
+  return data.session?.user ?? null
 }
 
 // Pull all data for the current user from Supabase
