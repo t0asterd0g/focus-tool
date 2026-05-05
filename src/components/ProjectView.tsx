@@ -7,7 +7,7 @@ import {
 import {
   Project, Task,
   getActiveTask, getQueuedTasks, getCompletedTasks, getIdeas,
-  completeTask, addTask, promoteIdea, deleteTask, updateProject, deleteProject,
+  completeTask, requeueTask, addTask, promoteIdea, deleteTask, updateProject, deleteProject,
   reorderTasks, swapActiveTask
 } from '@/lib/store'
 import { Button, Badge, Textarea, Input, Divider, Card, Empty, CompleteForm } from './ui'
@@ -300,7 +300,7 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
             {showDone && (
               <div className="flex flex-col gap-2">
                 {done.map(task => (
-                  <DoneTaskRow key={task.id} task={task} onOpen={() => { setEditingTitle(false); setTaskView(task) }} />
+                  <DoneTaskRow key={task.id} task={task} onOpen={() => { setEditingTitle(false); setTaskView(task) }} onRequeue={() => { requeueTask(task.id); bump() }} />
                 ))}
               </div>
             )}
@@ -352,10 +352,11 @@ function ActiveTaskCard({ task, onComplete, onOpen }: {
       ) : (
         <div className="mt-4 animate-slide-in border-t border-[var(--border)] pt-4">
           <CompleteForm
-            onConfirm={r => onComplete(task.id, r)}
+            onConfirm={r => { setCompleting(false); onComplete(task.id, r) }}
             onCancel={() => setCompleting(false)}
             label="Done — load next task"
             rows={3}
+            initialValue={task.reflection}
           />
         </div>
       )}
@@ -445,6 +446,7 @@ function QueuedTaskRow({ task, position, onDelete, onOpen, onComplete, onMakeFoc
           <CompleteForm
             onConfirm={r => { onComplete(r); setCompleting(false) }}
             onCancel={() => setCompleting(false)}
+            initialValue={task.reflection}
           />
         </div>
       )}
@@ -492,13 +494,19 @@ function IdeaRow({ idea, onPromote, onDelete, onOpen }: {
   )
 }
 
-function DoneTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
+function DoneTaskRow({ task, onOpen, onRequeue }: { task: Task; onOpen: () => void; onRequeue: () => void }) {
   return (
     <div
       onClick={onOpen}
       className="flex items-center gap-3 px-4 py-3 bg-[var(--bg-subtle)] border border-[var(--border)] rounded-[var(--radius-sm)] cursor-pointer hover:bg-[#D67402]/20 transition-colors"
     >
-      <CheckCircle2 size={14} className="text-[var(--accent)] flex-shrink-0" />
+      <button
+        onClick={e => { e.stopPropagation(); onRequeue() }}
+        className="flex-shrink-0 text-[var(--accent)] hover:text-[var(--text-muted)] transition-colors"
+        title="Move back to queue"
+      >
+        <CheckCircle2 size={14} />
+      </button>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-[var(--text-secondary)] line-through">{task.title}</p>
         {task.completedAt && (

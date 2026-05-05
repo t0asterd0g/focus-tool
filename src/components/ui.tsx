@@ -95,13 +95,14 @@ export function Card({ children, className = '' }: { children: React.ReactNode; 
 }
 
 // Complete task form (reflection textarea + confirm/cancel)
-export function CompleteForm({ onConfirm, onCancel, label = 'Mark done', rows = 2 }: {
+export function CompleteForm({ onConfirm, onCancel, label = 'Mark done', rows = 2, initialValue = '' }: {
   onConfirm: (reflection?: string) => void
   onCancel: () => void
   label?: string
   rows?: number
+  initialValue?: string
 }) {
-  const [reflection, setReflection] = useState('')
+  const [reflection, setReflection] = useState(initialValue)
   return (
     <div className="flex flex-col gap-3">
       <Textarea

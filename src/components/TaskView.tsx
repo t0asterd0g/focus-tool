@@ -145,7 +145,7 @@ export default function TaskView({ task: initialTask, onBack, onUpdate, backLabe
         </section>
 
         {/* Reflection (completed tasks) */}
-        {task.status === 'done' && task.reflection && (
+        {task.reflection && (
           <section className="mb-6">
             <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-widest mb-3">Reflection</p>
             <Card className="p-4">

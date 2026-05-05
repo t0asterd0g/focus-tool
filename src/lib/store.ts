@@ -156,7 +156,7 @@ export function completeTask(taskId: string, reflection?: string): void {
     ...task,
     status: 'done',
     completedAt: new Date().toISOString(),
-    reflection: reflection || '',
+    reflection: reflection || task.reflection || '',
   }
 
   // Promote next queued task for this project
@@ -169,6 +169,20 @@ export function completeTask(taskId: string, reflection?: string): void {
     if (nextIdx !== -1) data.tasks[nextIdx].status = 'active'
   }
 
+  saveData(data)
+}
+
+export function requeueTask(taskId: string): void {
+  const data = loadData()
+  const taskIdx = data.tasks.findIndex(t => t.id === taskId)
+  if (taskIdx === -1) return
+  const task = data.tasks[taskIdx]
+  const hasActive = data.tasks.some(t => t.projectId === task.projectId && t.status === 'active' && t.type === 'task')
+  data.tasks[taskIdx] = {
+    ...task,
+    status: hasActive ? 'queued' : 'active',
+    completedAt: undefined,
+  }
   saveData(data)
 }
 
