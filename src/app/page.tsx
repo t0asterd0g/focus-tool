@@ -85,7 +85,7 @@ function App({ onSignOut }: { onSignOut: () => void }) {
   // Dashboard
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      <div className="max-w-2xl mx-auto px-4 py-10">
+      <div className="max-w-2xl mx-auto px-4 py-8">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-10 animate-fade-up">

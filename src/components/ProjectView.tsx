@@ -97,7 +97,7 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      <div className="max-w-2xl mx-auto px-4 pt-10 pb-10">
+      <div className="max-w-2xl mx-auto px-4 py-8">
 
         {/* Back */}
         <div className="flex items-center justify-between mb-6">
