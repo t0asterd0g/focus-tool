@@ -555,6 +555,9 @@ video {
 .mb-8{
   margin-bottom: 2rem;
 }
+.ml-auto{
+  margin-left: auto;
+}
 .mt-0\.5{
   margin-top: 0.125rem;
 }
@@ -581,12 +584,6 @@ video {
 }
 .mt-6{
   margin-top: 1.5rem;
-}
-.ml-auto{
-  margin-left: auto;
-}
-.mt-8{
-  margin-top: 2rem;
 }
 .line-clamp-1{
   overflow: hidden;
@@ -689,9 +686,6 @@ video {
 }
 .gap-4{
   gap: 1rem;
-}
-.self-start{
-  align-self: flex-start;
 }
 .overflow-hidden{
   overflow: hidden;
@@ -919,9 +913,6 @@ video {
 .leading-snug{
   line-height: 1.375;
 }
-.leading-none{
-  line-height: 1;
-}
 .tracking-wide{
   letter-spacing: 0.025em;
 }
@@ -1098,20 +1089,14 @@ h1, h2, h3 {
   --tw-bg-opacity: 1;
   background-color: rgb(51 51 51 / var(--tw-bg-opacity, 1));
 }
-.hover\:bg-\[var\(--bg-active\)\]:hover{
-  background-color: var(--bg-active);
+.hover\:bg-\[\#D67402\]\/20:hover{
+  background-color: rgb(214 116 2 / 0.2);
 }
 .hover\:bg-\[var\(--bg-subtle\)\]:hover{
   background-color: var(--bg-subtle);
 }
 .hover\:bg-\[var\(--danger-light\)\]:hover{
   background-color: var(--danger-light);
-}
-.hover\:bg-\[\#D67402\]\/10:hover{
-  background-color: rgb(214 116 2 / 0.1);
-}
-.hover\:bg-\[\#D67402\]\/20:hover{
-  background-color: rgb(214 116 2 / 0.2);
 }
 .hover\:text-\[var\(--accent\)\]:hover{
   color: var(--accent);
