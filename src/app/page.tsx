@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect } from 'react'
 import { Plus, BookOpen, LayoutDashboard, List, Circle, CheckCircle2, ArrowRight, LogOut } from 'lucide-react'
 import { loadData, saveData, Project, Task, getActiveTask, completeTask } from '@/lib/store'
 import ProjectCard from '@/components/ProjectCard'
@@ -24,6 +24,8 @@ function App({ onSignOut }: { onSignOut: () => void }) {
   const [mounted, setMounted] = useState(false)
   const [compact, setCompact] = useState(false)
   const [tab, setTab] = useState<'focused' | 'other'>('focused')
+
+  useLayoutEffect(() => { window.scrollTo(0, 0) }, [activeProject])
 
   useEffect(() => {
     setMounted(true)
