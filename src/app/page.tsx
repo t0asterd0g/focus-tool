@@ -33,7 +33,18 @@ function App({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
     return saved === 'other' ? 'other' : 'focused'
   })
 
-  useLayoutEffect(() => { document.documentElement.scrollTop = 0 }, [activeProject])
+  useEffect(() => {
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+    window.scrollTo(0, 0)
+    // iOS Safari sometimes needs a tick after touch handling finishes
+    const t = setTimeout(() => {
+      document.documentElement.scrollTop = 0
+      document.body.scrollTop = 0
+      window.scrollTo(0, 0)
+    }, 0)
+    return () => clearTimeout(t)
+  }, [activeProject])
 
   const refreshRef = useRef(refresh)
   useEffect(() => { refreshRef.current = refresh })
