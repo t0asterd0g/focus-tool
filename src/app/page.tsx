@@ -36,6 +36,15 @@ function App({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
     return () => { channel.unsubscribe() }
   }, [userId])
 
+  // Sync across tabs on the same device via the native storage event
+  useEffect(() => {
+    function handleStorage(e: StorageEvent) {
+      if (e.key === 'mastery-app-v1') refreshRef.current()
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
+
   useEffect(() => {
     setMounted(true)
     const data = loadData()
