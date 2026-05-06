@@ -90,6 +90,7 @@ export function toggleProjectFocus(id: string): void {
   if (idx !== -1) {
     data.projects[idx] = { ...data.projects[idx], focused: !data.projects[idx].focused }
     saveData(data)
+    syncProject(data.projects[idx]).catch(() => {})
   }
 }
 
