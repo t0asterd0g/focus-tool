@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { CheckCircle2, Circle, Flame } from 'lucide-react'
 import { Project, Task, getActiveTask, getQueuedTasks, getCompletedTasks, completeTask, toggleProjectFocus } from '@/lib/store'
 import { Button, Badge, Divider, CompleteForm } from './ui'
@@ -16,7 +16,19 @@ export default function ProjectCard({ project, onUpdate, onOpen, compact = false
   const queued = getQueuedTasks(project.id)
   const done = getCompletedTasks(project.id)
   const total = (active ? 1 : 0) + queued.length + done.length
+  const [hovered, setHovered] = useState(false)
+  const [pressed, setPressed] = useState(false)
+  const pointerInside = useRef(false)
 
+  const hoverProps = {
+    onPointerEnter: () => { pointerInside.current = true; setHovered(true) },
+    onPointerLeave: () => { pointerInside.current = false; setHovered(false); setPressed(false) },
+    onPointerDown: () => { if (pointerInside.current) setPressed(true) },
+    onPointerUp: () => setPressed(false),
+    onPointerCancel: () => { setHovered(false); setPressed(false) },
+  }
+
+  const bgClass = pressed || hovered ? 'bg-[var(--bg-subtle)]' : 'bg-[var(--bg-card)]'
 
   function handleFocusToggle(e: React.MouseEvent) {
     e.stopPropagation()
@@ -28,7 +40,8 @@ export default function ProjectCard({ project, onUpdate, onOpen, compact = false
     return (
       <div
         onClick={onOpen}
-        className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius-lg)] px-4 pt-5 pb-5 cursor-pointer hover:bg-[var(--bg-subtle)] transition-colors"
+        className={`${bgClass} border border-[var(--border)] rounded-[var(--radius-lg)] px-4 pt-5 pb-5 cursor-pointer transition-colors`}
+        {...hoverProps}
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
@@ -51,7 +64,7 @@ export default function ProjectCard({ project, onUpdate, onOpen, compact = false
   }
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius-lg)] overflow-hidden hover:bg-[var(--bg-subtle)] transition-colors">
+    <div className={`${bgClass} border border-[var(--border)] rounded-[var(--radius-lg)] overflow-hidden transition-colors`} {...hoverProps}>
       {/* Project header */}
       <div className="px-4 pt-5 pb-5 cursor-pointer" onClick={onOpen}>
         <div className="flex items-start justify-between gap-4">
