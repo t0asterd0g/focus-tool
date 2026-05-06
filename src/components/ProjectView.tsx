@@ -164,7 +164,7 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
             </p>
           )}
 
-          <div className="mt-2 inline-flex items-start gap-2 px-3 py-1.5 rounded-full text-xs bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+          <div className="mt-2 inline-flex items-start gap-2 px-3 py-1.5 text-xs bg-[var(--bg-subtle)] text-[var(--text-secondary)]" style={{ borderRadius: 'var(--radius)' }}>
             <span className="font-medium">Scope:</span> {project.scope}
           </div>
 
