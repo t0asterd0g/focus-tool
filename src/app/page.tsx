@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useLayoutEffect, useRef } from 'react'
-import { Plus, BookOpen, LayoutDashboard, List, Circle, CheckCircle2, ArrowRight, LogOut } from 'lucide-react'
+import { Plus, BookOpen, LayoutDashboard, List, Circle, CheckCircle2, LogOut } from 'lucide-react'
 import { loadData, saveData, Project, Task, getActiveTask, completeTask } from '@/lib/store'
 import { subscribeToChanges } from '@/lib/supabase'
 import ProjectCard from '@/components/ProjectCard'
@@ -240,10 +240,17 @@ function TodayStrip({ projects, onRefresh, onOpenTask }: { projects: Project[]; 
 
 function TodayFocusRow({ project, task, onRefresh, onOpen }: { project: Project; task: Task; onRefresh: () => void; onOpen: () => void }) {
   const [completing, setCompleting] = useState(false)
+  const [pressed, setPressed] = useState(false)
 
   return (
     <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-subtle)] active:bg-[var(--bg-subtle)] transition-colors">
+      <div
+        className={`flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-subtle)] transition-colors${pressed ? ' bg-[var(--bg-subtle)]' : ''}`}
+        onPointerDown={() => setPressed(true)}
+        onPointerUp={() => setPressed(false)}
+        onPointerCancel={() => setPressed(false)}
+        onPointerLeave={() => setPressed(false)}
+      >
         <button
           className="flex-shrink-0 cursor-pointer"
           onClick={() => setCompleting(v => !v)}
@@ -255,13 +262,6 @@ function TodayFocusRow({ project, task, onRefresh, onOpen }: { project: Project;
           <p className="text-xs text-[var(--text-muted)] mb-0.5">{project.title}</p>
           <p className="text-sm font-medium text-[var(--text-primary)] truncate">{task.title}</p>
         </div>
-        <button
-          onClick={onOpen}
-          className="flex-shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-          aria-label="Open task"
-        >
-          <ArrowRight size={14} />
-        </button>
       </div>
 
       {completing && (
