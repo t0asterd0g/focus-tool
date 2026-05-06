@@ -47,7 +47,6 @@ html, body {
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.6;
-  overflow-y: scroll;
   -webkit-font-smoothing: antialiased;
 }
 
