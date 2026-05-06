@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import {
   ArrowLeft, Plus, CheckCircle2, Circle, Lightbulb, ArrowUp,
-  Trash2, ArrowDown, X, GripVertical, Zap, Link2
+  Trash2, ArrowDown, X, GripVertical, Zap, Link2, FileText
 } from 'lucide-react'
 import {
   Project, Task,
@@ -516,7 +516,7 @@ function DoneTaskRow({ task, onOpen, onRequeue }: { task: Task; onOpen: () => vo
         )}
       </div>
       {task.reflection && (
-        <ArrowDown size={13} className="text-[var(--text-muted)] flex-shrink-0" />
+        <FileText size={13} className="text-[var(--text-muted)] flex-shrink-0" />
       )}
     </div>
   )
