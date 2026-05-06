@@ -23,7 +23,10 @@ function App({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
   const [initialTaskId, setInitialTaskId] = useState<string | undefined>(undefined)
   const [showNewProject, setShowNewProject] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [compact, setCompact] = useState(false)
+  const [compact, setCompact] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('mastery-compact-view') === 'true'
+  })
   const [tab, setTab] = useState<'focused' | 'other'>('focused')
 
   useLayoutEffect(() => { document.documentElement.scrollTop = 0; document.body.scrollTop = 0 }, [activeProject])
@@ -170,7 +173,7 @@ function App({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
                 </button>
               </div>
               <button
-                onClick={() => setCompact(v => !v)}
+                onClick={() => setCompact(v => { const next = !v; localStorage.setItem('mastery-compact-view', String(next)); return next })}
                 className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors ml-auto"
                 title={compact ? 'Full view' : 'Compact view'}
               >
