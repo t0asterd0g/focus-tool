@@ -33,7 +33,7 @@ function App({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
     return saved === 'other' ? 'other' : 'focused'
   })
 
-  useLayoutEffect(() => { window.scrollTo(0, 0) }, [activeProject])
+  useLayoutEffect(() => { document.documentElement.scrollTop = 0 }, [activeProject])
 
   const refreshRef = useRef(refresh)
   useEffect(() => { refreshRef.current = refresh })
