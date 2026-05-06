@@ -27,7 +27,11 @@ function App({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('mastery-compact-view') === 'true'
   })
-  const [tab, setTab] = useState<'focused' | 'other'>('focused')
+  const [tab, setTab] = useState<'focused' | 'other'>(() => {
+    if (typeof window === 'undefined') return 'focused'
+    const saved = localStorage.getItem('mastery-project-tab')
+    return saved === 'other' ? 'other' : 'focused'
+  })
 
   useLayoutEffect(() => { document.documentElement.scrollTop = 0; document.body.scrollTop = 0 }, [activeProject])
 
@@ -150,7 +154,7 @@ function App({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
               <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest font-medium flex-shrink-0">Projects</p>
               <div className="flex gap-1 p-1 rounded-[var(--radius-sm)] bg-[var(--bg-subtle)]">
                 <button
-                  onClick={() => setTab('focused')}
+                  onClick={() => { setTab('focused'); localStorage.setItem('mastery-project-tab', 'focused') }}
                   className={`flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-sm)] text-xs font-medium transition-colors ${tab === 'focused' ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
                 >
                   Focused
@@ -161,7 +165,7 @@ function App({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
                   )}
                 </button>
                 <button
-                  onClick={() => setTab('other')}
+                  onClick={() => { setTab('other'); localStorage.setItem('mastery-project-tab', 'other') }}
                   className={`flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-sm)] text-xs font-medium transition-colors ${tab === 'other' ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
                 >
                   Other
@@ -239,7 +243,7 @@ function TodayFocusRow({ project, task, onRefresh, onOpen }: { project: Project;
 
   return (
     <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-subtle)] transition-colors">
+      <div className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-subtle)] active:bg-[var(--bg-subtle)] transition-colors">
         <button
           className="flex-shrink-0 cursor-pointer"
           onClick={() => setCompleting(v => !v)}
