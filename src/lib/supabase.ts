@@ -91,7 +91,7 @@ export async function syncTasks(tasks: Task[]): Promise<void> {
 }
 
 // Subscribe to real-time changes from other devices and merge into localStorage
-export function subscribeToChanges(onUpdate: () => void): RealtimeChannel {
+export function subscribeToChanges(userId: string, onUpdate: () => void): RealtimeChannel {
   const STORAGE_KEY = 'mastery-app-v1'
 
   function getLocal(): AppData {
@@ -102,8 +102,8 @@ export function subscribeToChanges(onUpdate: () => void): RealtimeChannel {
   }
 
   const channel = supabase
-    .channel('db-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, payload => {
+    .channel(`db-changes-${userId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'projects', filter: `user_id=eq.${userId}` }, payload => {
       const data = getLocal()
       if (payload.eventType === 'DELETE') {
         data.projects = data.projects.filter(p => p.id !== payload.old.id)
@@ -117,7 +117,7 @@ export function subscribeToChanges(onUpdate: () => void): RealtimeChannel {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
       onUpdate()
     })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `user_id=eq.${userId}` }, payload => {
       const data = getLocal()
       if (payload.eventType === 'DELETE') {
         data.tasks = data.tasks.filter(t => t.id !== payload.old.id)
@@ -130,7 +130,10 @@ export function subscribeToChanges(onUpdate: () => void): RealtimeChannel {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
       onUpdate()
     })
-    .subscribe()
+    .subscribe(status => {
+      if (status === 'CHANNEL_ERROR') console.error('[realtime] channel error — check Realtime is enabled on projects/tasks tables in Supabase')
+      if (status === 'TIMED_OUT') console.error('[realtime] subscription timed out')
+    })
 
   return channel
 }

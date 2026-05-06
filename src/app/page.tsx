@@ -12,12 +12,12 @@ import { Button, CompleteForm } from '@/components/ui'
 export default function Home() {
   return (
     <AuthGate>
-      {(_user, onSignOut) => <App onSignOut={onSignOut} />}
+      {(user, onSignOut) => <App userId={user.id} onSignOut={onSignOut} />}
     </AuthGate>
   )
 }
 
-function App({ onSignOut }: { onSignOut: () => void }) {
+function App({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
   const [projects, setProjects] = useState<Project[]>([])
   const [activeProject, setActiveProject] = useState<Project | null>(null)
   const [initialTaskId, setInitialTaskId] = useState<string | undefined>(undefined)
@@ -32,9 +32,9 @@ function App({ onSignOut }: { onSignOut: () => void }) {
   useEffect(() => { refreshRef.current = refresh })
 
   useEffect(() => {
-    const channel = subscribeToChanges(() => refreshRef.current())
+    const channel = subscribeToChanges(userId, () => refreshRef.current())
     return () => { channel.unsubscribe() }
-  }, [])
+  }, [userId])
 
   useEffect(() => {
     setMounted(true)
