@@ -164,7 +164,7 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
             </p>
           )}
 
-          <div className="mt-2 inline-flex items-start gap-2 px-3 py-1.5 text-xs bg-[var(--bg-subtle)] text-[var(--text-secondary)]" style={{ borderRadius: 'var(--radius)' }}>
+          <div className="mt-2 inline-flex items-start gap-2 px-3 py-2 text-xs bg-[var(--bg-subtle)] text-[var(--text-secondary)]" style={{ borderRadius: 'var(--radius)' }}>
             <span className="font-medium">Scope:</span> {project.scope}
           </div>
 
@@ -325,7 +325,7 @@ function ActiveTaskCard({ task, onComplete, onOpen }: {
   const [completing, setCompleting] = useState(false)
 
   return (
-    <Card className="p-5">
+    <Card className="px-5 pt-5 pb-4">
       <div className="flex items-start gap-3 mb-3">
         <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: 'var(--accent)' }} />
         <div className="flex-1 cursor-pointer" onClick={onOpen}>
