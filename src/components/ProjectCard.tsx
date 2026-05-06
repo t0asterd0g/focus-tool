@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { CheckCircle2, Circle, ArrowRight, Flame } from 'lucide-react'
+import { CheckCircle2, Circle, Flame } from 'lucide-react'
 import { Project, Task, getActiveTask, getQueuedTasks, getCompletedTasks, completeTask, toggleProjectFocus } from '@/lib/store'
 import { Button, Badge, Divider, CompleteForm } from './ui'
 
@@ -67,7 +67,7 @@ export default function ProjectCard({ project, onUpdate, onOpen, compact = false
             >
               <Flame size={16} />
             </button>
-            <ArrowRight size={16} className="text-[var(--text-muted)]" />
+
           </div>
         </div>
 

@@ -243,14 +243,14 @@ function TodayFocusRow({ project, task, onRefresh, onOpen }: { project: Project;
   const [pressed, setPressed] = useState(false)
 
   return (
-    <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
-      <div
-        className={`flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-subtle)] transition-colors${pressed ? ' bg-[var(--bg-subtle)]' : ''}`}
-        onPointerDown={() => setPressed(true)}
-        onPointerUp={() => setPressed(false)}
-        onPointerCancel={() => setPressed(false)}
-        onPointerLeave={() => setPressed(false)}
-      >
+    <div
+      className={`rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden hover:border-[var(--border-strong)] transition-colors${pressed ? ' border-[var(--border-strong)] bg-[var(--bg-subtle)]' : ''}`}
+      onPointerDown={() => setPressed(true)}
+      onPointerUp={() => setPressed(false)}
+      onPointerCancel={() => setPressed(false)}
+      onPointerLeave={() => setPressed(false)}
+    >
+      <div className="flex items-center gap-3 px-4 py-3">
         <button
           className="flex-shrink-0 cursor-pointer"
           onClick={() => setCompleting(v => !v)}
