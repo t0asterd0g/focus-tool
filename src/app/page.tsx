@@ -1,7 +1,8 @@
 'use client'
-import { useState, useEffect, useLayoutEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { Plus, BookOpen, LayoutDashboard, List, Circle, CheckCircle2, ArrowRight, LogOut } from 'lucide-react'
 import { loadData, saveData, Project, Task, getActiveTask, completeTask } from '@/lib/store'
+import { subscribeToChanges } from '@/lib/supabase'
 import ProjectCard from '@/components/ProjectCard'
 import ProjectView from '@/components/ProjectView'
 import NewProjectModal from '@/components/NewProjectModal'
@@ -26,6 +27,14 @@ function App({ onSignOut }: { onSignOut: () => void }) {
   const [tab, setTab] = useState<'focused' | 'other'>('focused')
 
   useLayoutEffect(() => { document.documentElement.scrollTop = 0; document.body.scrollTop = 0 }, [activeProject])
+
+  const refreshRef = useRef(refresh)
+  useEffect(() => { refreshRef.current = refresh })
+
+  useEffect(() => {
+    const channel = subscribeToChanges(() => refreshRef.current())
+    return () => { channel.unsubscribe() }
+  }, [])
 
   useEffect(() => {
     setMounted(true)

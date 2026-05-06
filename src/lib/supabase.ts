@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, RealtimeChannel } from '@supabase/supabase-js'
 import type { AppData, Project, Task } from './store'
 
 export const supabase = createClient(
@@ -88,6 +88,51 @@ export async function syncTasks(tasks: Task[]): Promise<void> {
   const user = await getUser()
   if (!user || tasks.length === 0) return
   await supabase.from('tasks').upsert(tasks.map(t => taskToDb(t, user.id)), { onConflict: 'id' })
+}
+
+// Subscribe to real-time changes from other devices and merge into localStorage
+export function subscribeToChanges(onUpdate: () => void): RealtimeChannel {
+  const STORAGE_KEY = 'mastery-app-v1'
+
+  function getLocal(): AppData {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      return raw ? JSON.parse(raw) : { projects: [], tasks: [] }
+    } catch { return { projects: [], tasks: [] } }
+  }
+
+  const channel = supabase
+    .channel('db-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, payload => {
+      const data = getLocal()
+      if (payload.eventType === 'DELETE') {
+        data.projects = data.projects.filter(p => p.id !== payload.old.id)
+        data.tasks = data.tasks.filter(t => t.projectId !== payload.old.id)
+      } else {
+        const project = dbToProject(payload.new as Record<string, unknown>)
+        const idx = data.projects.findIndex(p => p.id === project.id)
+        if (idx !== -1) data.projects[idx] = project
+        else data.projects.push(project)
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      onUpdate()
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
+      const data = getLocal()
+      if (payload.eventType === 'DELETE') {
+        data.tasks = data.tasks.filter(t => t.id !== payload.old.id)
+      } else {
+        const task = dbToTask(payload.new as Record<string, unknown>)
+        const idx = data.tasks.findIndex(t => t.id === task.id)
+        if (idx !== -1) data.tasks[idx] = task
+        else data.tasks.push(task)
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      onUpdate()
+    })
+    .subscribe()
+
+  return channel
 }
 
 // DB <-> app model conversions
