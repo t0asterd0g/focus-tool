@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
-import { Plus, BookOpen, LayoutDashboard, List, Circle, CheckCircle2, LogOut } from 'lucide-react'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
+import { Plus, BookOpen, LayoutDashboard, List, LogOut } from 'lucide-react'
 import { loadData, saveData, Project, Task, getActiveTask, completeTask } from '@/lib/store'
 import { subscribeToChanges } from '@/lib/supabase'
 import ProjectCard from '@/components/ProjectCard'
@@ -238,40 +238,91 @@ function TodayStrip({ projects, onRefresh, onOpenTask }: { projects: Project[]; 
   )
 }
 
+// Derive a stable accent color per project from its id
+const PROJECT_COLORS = ['#2D6A4F', '#6366F1', '#D97706', '#DB2777', '#0891B2', '#7C3AED', '#059669']
+function projectColor(project: Project): string {
+  let h = 0
+  for (let i = 0; i < project.id.length; i++) h = (h * 31 + project.id.charCodeAt(i)) >>> 0
+  return PROJECT_COLORS[h % PROJECT_COLORS.length]
+}
+
 function TodayFocusRow({ project, task, onRefresh, onOpen }: { project: Project; task: Task; onRefresh: () => void; onOpen: () => void }) {
-  const [completing, setCompleting] = useState(false)
-  const [pressed, setPressed] = useState(false)
+  const color = projectColor(project)
+  // checked: checkbox ticked, animating out; showForm: legacy confirm expand
+  const [checked, setChecked] = useState(false)
+  const [rippling, setRippling] = useState(false)
+  const [gone, setGone] = useState(false)
+  const [hovered, setHovered] = useState(false)
+
+  const handleCheck = useCallback(() => {
+    if (checked) return
+    setChecked(true)
+    setRippling(true)
+    // fade the row out after 1.2s total, then actually complete
+    setTimeout(() => {
+      setGone(true)
+      setTimeout(() => {
+        completeTask(task.id, '')
+        onRefresh()
+      }, 420)
+    }, 1200)
+  }, [checked, task.id, onRefresh])
+
+  if (gone) return null
 
   return (
     <div
-      className={`rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden hover:border-[var(--border-strong)] transition-colors${pressed ? ' border-[var(--border-strong)] bg-[var(--bg-subtle)]' : ''}`}
-      onPointerDown={() => setPressed(true)}
-      onPointerUp={() => setPressed(false)}
-      onPointerCancel={() => setPressed(false)}
-      onPointerLeave={() => setPressed(false)}
+      className={`rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden transition-colors${checked ? ' task-card-bounce' : ' hover:border-[var(--border-strong)]'}${gone ? ' task-row-fadeout' : ''}`}
+      style={gone ? { overflow: 'hidden', animation: 'rowFadeOut 400ms ease forwards' } : undefined}
     >
       <div className="flex items-center gap-3 px-4 py-3">
         <button
-          className="flex-shrink-0 cursor-pointer"
-          onClick={() => setCompleting(v => !v)}
+          className="flex-shrink-0 cursor-pointer focus:outline-none"
+          onClick={handleCheck}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
           aria-label="Mark complete"
         >
-          {completing ? <CheckCircle2 size={16} className="text-[var(--accent)]" /> : <Circle size={16} className="text-[var(--border-strong)] hover:text-[var(--text-muted)] transition-colors" />}
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', overflow: 'visible' }}>
+            {/* Ripple ring — fires on check */}
+            {rippling && (
+              <circle
+                cx="9" cy="9" r="7"
+                fill="none"
+                stroke={color}
+                strokeWidth="2"
+                className="task-ripple"
+                onAnimationEnd={() => setRippling(false)}
+              />
+            )}
+            {/* Outer ring */}
+            <circle
+              cx="9" cy="9" r="7.5"
+              stroke={checked ? color : hovered ? color : 'var(--border-strong)'}
+              strokeWidth="1.5"
+              fill={checked ? color : hovered ? `${color}33` : 'none'}
+              style={{ transition: 'stroke 160ms, fill 160ms' }}
+            />
+            {/* Checkmark — only when checked */}
+            {checked && (
+              <polyline
+                points="5.5,9 8,11.5 12.5,6.5"
+                stroke="white"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+                className="task-check-draw"
+              />
+            )}
+          </svg>
         </button>
+
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onOpen}>
-          <p className="text-xs text-[var(--text-muted)] mb-0.5">{project.title}</p>
-          <p className="text-sm font-medium text-[var(--text-primary)] truncate">{task.title}</p>
+          <p className="text-xs mb-0.5" style={{ color: checked ? color : 'var(--text-muted)', transition: 'color 200ms' }}>{project.title}</p>
+          <p className={`text-sm font-medium truncate transition-colors${checked ? ' line-through' : ''}`} style={{ color: checked ? 'var(--text-muted)' : 'var(--text-primary)', transition: 'color 200ms, text-decoration 200ms' }}>{task.title}</p>
         </div>
       </div>
-
-      {completing && (
-        <div className="px-4 pb-4 animate-slide-in border-t border-[var(--border)] pt-3">
-          <CompleteForm
-            onConfirm={r => { completeTask(task.id, r); setCompleting(false); onRefresh() }}
-            onCancel={() => setCompleting(false)}
-          />
-        </div>
-      )}
     </div>
   )
 }

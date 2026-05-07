@@ -76,6 +76,51 @@ h1, h2, h3 {
   50% { opacity: 0.6; }
 }
 
+/* Today's Focus checkbox animations */
+@keyframes checkDraw {
+  from { stroke-dashoffset: 24; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes doneRipple {
+  0%   { r: 7; opacity: 0.55; }
+  60%  { r: 13; opacity: 0.18; }
+  100% { r: 16; opacity: 0; }
+}
+
+@keyframes cardBounce {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(0.98); }
+  65%  { transform: scale(1.012); }
+  100% { transform: scale(1); }
+}
+
+@keyframes rowFadeOut {
+  0%   { opacity: 1; max-height: 80px; }
+  70%  { opacity: 0; max-height: 80px; }
+  100% { opacity: 0; max-height: 0; padding: 0; margin: 0; }
+}
+
+.task-check-draw {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: checkDraw 280ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.task-ripple {
+  animation: doneRipple 600ms ease-out forwards;
+}
+
+.task-card-bounce {
+  animation: cardBounce 380ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.task-row-fadeout {
+  overflow: hidden;
+  animation: rowFadeOut 400ms ease 820ms forwards;
+  pointer-events: none;
+}
+
 .animate-fade-up { animation: fadeUp 0.35s ease both; }
 .animate-fade-up-delay { animation: fadeUp 0.35s ease 0.1s both; }
 .animate-fade-up-delay-2 { animation: fadeUp 0.35s ease 0.2s both; }

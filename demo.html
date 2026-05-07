@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Today's Focus — Checkbox Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F5F0;
+    --bg-card: #FFFFFF;
+    --bg-subtle: #F0EDE8;
+    --text-primary: #1A1A1A;
+    --text-secondary: #6B6860;
+    --text-muted: #A8A5A0;
+    --border: #E5E2DC;
+    --border-strong: #C8C4BC;
+    --accent: #2D6A4F;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+
+  .rows { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ── Card ── */
+  .task-card {
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    overflow: hidden;
+    transition: border-color 160ms;
+  }
+  .task-card:hover { border-color: var(--border-strong); }
+  .task-card.bouncing { animation: cardBounce 380ms cubic-bezier(0.34,1.56,0.64,1) forwards; }
+  .task-card.fading-out {
+    overflow: hidden;
+    animation: rowFadeOut 400ms ease 820ms forwards;
+    pointer-events: none;
+  }
+
+  .task-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+
+  /* ── SVG checkbox button ── */
+  .check-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+  }
+
+  .check-btn svg { display: block; overflow: visible; }
+
+  /* ring */
+  .ring {
+    transition: stroke 160ms, fill 160ms;
+  }
+  /* checkmark path */
+  .check-path {
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+  }
+  .check-path.draw { animation: checkDraw 280ms cubic-bezier(0.4,0,0.2,1) forwards; }
+
+  /* ripple */
+  .ripple-circle { opacity: 0; }
+  .ripple-circle.go { animation: doneRipple 600ms ease-out forwards; }
+
+  /* text */
+  .task-text { flex: 1; min-width: 0; cursor: pointer; }
+  .task-project { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; transition: color 200ms; }
+  .task-title { font-size: 14px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 200ms; }
+  .task-title.done { text-decoration: line-through; color: var(--text-muted); }
+
+  /* reset pill */
+  .reset-btn {
+    margin-top: 28px;
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background: none;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: color 160ms, border-color 160ms;
+  }
+  .reset-btn:hover { color: var(--text-secondary); border-color: var(--text-muted); }
+
+  /* ── Keyframes ── */
+  @keyframes checkDraw {
+    from { stroke-dashoffset: 24; }
+    to   { stroke-dashoffset: 0; }
+  }
+
+  @keyframes doneRipple {
+    0%   { r: 7;  opacity: 0.55; }
+    60%  { r: 13; opacity: 0.18; }
+    100% { r: 16; opacity: 0; }
+  }
+
+  @keyframes cardBounce {
+    0%   { transform: scale(1); }
+    25%  { transform: scale(0.98); }
+    65%  { transform: scale(1.012); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes rowFadeOut {
+    0%   { opacity: 1; max-height: 80px; }
+    70%  { opacity: 0; max-height: 80px; }
+    100% { opacity: 0; max-height: 0; padding: 0; margin: 0; }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-up { animation: fadeUp 0.35s ease both; }
+</style>
+</head>
+<body>
+<div class="container">
+  <p class="section-label">Today's focus</p>
+  <div class="rows" id="rows"></div>
+  <button class="reset-btn" onclick="init()">↺ Reset demo</button>
+</div>
+
+<script>
+const TASKS = [
+  { id: 'a1', project: 'Mastery App', title: 'Build animated checkbox interaction', color: '#2D6A4F' },
+  { id: 'b2', project: 'Design System', title: 'Audit spacing tokens across components', color: '#6366F1' },
+  { id: 'c3', project: 'Content', title: 'Write launch post for Product Hunt', color: '#D97706' },
+]
+
+function makeRow(t) {
+  const wrapper = document.createElement('div')
+  wrapper.className = 'task-card fade-up'
+  wrapper.style.animationDelay = `${TASKS.indexOf(t) * 60}ms`
+
+  wrapper.innerHTML = `
+    <div class="task-row">
+      <button class="check-btn" aria-label="Mark complete">
+        <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
+          <!-- ripple -->
+          <circle class="ripple-circle" cx="9" cy="9" r="7" fill="none" stroke="${t.color}" stroke-width="2"/>
+          <!-- ring -->
+          <circle class="ring" cx="9" cy="9" r="7.5" stroke="var(--border-strong)" stroke-width="1.5" fill="none"/>
+          <!-- checkmark -->
+          <polyline class="check-path" points="5.5,9 8,11.5 12.5,6.5"
+            stroke="white" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </button>
+      <div class="task-text">
+        <div class="task-project">${t.project}</div>
+        <div class="task-title">${t.title}</div>
+      </div>
+    </div>
+  `
+
+  const btn = wrapper.querySelector('.check-btn')
+  const ring = wrapper.querySelector('.ring')
+  const ripple = wrapper.querySelector('.ripple-circle')
+  const checkPath = wrapper.querySelector('.check-path')
+  const projectEl = wrapper.querySelector('.task-project')
+  const titleEl = wrapper.querySelector('.task-title')
+
+  let checked = false
+
+  // hover
+  btn.addEventListener('mouseenter', () => {
+    if (checked) return
+    ring.setAttribute('stroke', t.color)
+    ring.setAttribute('fill', t.color + '33')
+  })
+  btn.addEventListener('mouseleave', () => {
+    if (checked) return
+    ring.setAttribute('stroke', 'var(--border-strong)')
+    ring.setAttribute('fill', 'none')
+  })
+
+  btn.addEventListener('click', () => {
+    if (checked) return
+    checked = true
+
+    // fill ring
+    ring.setAttribute('stroke', t.color)
+    ring.setAttribute('fill', t.color)
+
+    // draw checkmark
+    checkPath.classList.add('draw')
+
+    // ripple
+    ripple.classList.add('go')
+
+    // bounce card
+    wrapper.classList.add('bouncing')
+
+    // project label color
+    projectEl.style.color = t.color
+
+    // strikethrough title
+    titleEl.classList.add('done')
+
+    // fade out row at 1.2s
+    setTimeout(() => {
+      wrapper.classList.add('fading-out')
+      wrapper.addEventListener('animationend', (e) => {
+        if (e.animationName === 'rowFadeOut') wrapper.remove()
+      })
+    }, 1200)
+  })
+
+  return wrapper
+}
+
+function init() {
+  const rows = document.getElementById('rows')
+  rows.innerHTML = ''
+  TASKS.forEach(t => rows.appendChild(makeRow(t)))
+}
+
+init()
+</script>
+</body>
+</html>
