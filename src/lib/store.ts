@@ -238,14 +238,13 @@ export function swapActiveTask(queuedTaskId: string): void {
   const newActiveIdx = data.tasks.findIndex(t => t.id === queuedTaskId)
   if (newActiveIdx === -1) return
   const newActive = data.tasks[newActiveIdx]
-  const currentActiveIdx = data.tasks.findIndex(
-    t => t.projectId === newActive.projectId && t.status === 'active' && t.type === 'task'
-  )
   const affected: Task[] = []
-  if (currentActiveIdx !== -1) {
-    data.tasks[currentActiveIdx].status = 'queued'
-    affected.push(data.tasks[currentActiveIdx])
-  }
+  data.tasks.forEach((t, i) => {
+    if (t.projectId === newActive.projectId && t.status === 'active' && t.type === 'task' && t.id !== queuedTaskId) {
+      data.tasks[i].status = 'queued'
+      affected.push(data.tasks[i])
+    }
+  })
   data.tasks[newActiveIdx].status = 'active'
   affected.push(data.tasks[newActiveIdx])
   saveData(data)
