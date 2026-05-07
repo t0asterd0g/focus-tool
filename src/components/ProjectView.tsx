@@ -422,7 +422,7 @@ function QueuedTaskRow({ task, position, onDelete, onOpen, onComplete, onMakeFoc
           </div>
           {task.notes && <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">{task.notes}</p>}
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+        <div className="flex items-center gap-6 opacity-0 group-hover:opacity-100 transition-all">
           {hasActiveFocus && (
             <button
               onClick={e => { e.stopPropagation(); onMakeFocus() }}
@@ -475,7 +475,7 @@ function IdeaRow({ idea, onPromote, onDelete, onOpen }: {
         </div>
         {idea.notes && <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">{idea.notes}</p>}
       </div>
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+      <div className="flex gap-6 opacity-0 group-hover:opacity-100 transition-all">
         <button
           onClick={e => { e.stopPropagation(); onPromote() }}
           className="text-[var(--accent)] hover:text-[var(--accent-text)] transition-colors"
