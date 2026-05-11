@@ -64,10 +64,21 @@ export async function syncProject(project: Project): Promise<void> {
   await supabase.from('projects').upsert(projectToDb(project, user.id), { onConflict: 'id' })
 }
 
+// Task IDs of writes we originated — suppress the realtime echo to prevent
+// stale intermediate states from overwriting newer local state.
+const suppressTaskEchoes = new Map<string, ReturnType<typeof setTimeout>>()
+
+function suppressEcho(taskId: string) {
+  const prev = suppressTaskEchoes.get(taskId)
+  if (prev) clearTimeout(prev)
+  suppressTaskEchoes.set(taskId, setTimeout(() => suppressTaskEchoes.delete(taskId), 5000))
+}
+
 // Sync a single task upsert
 export async function syncTask(task: Task): Promise<void> {
   const user = await getUser()
   if (!user) return
+  suppressEcho(task.id)
   await supabase.from('tasks').upsert(taskToDb(task, user.id), { onConflict: 'id' })
 }
 
@@ -87,6 +98,7 @@ export async function syncDeleteTask(id: string): Promise<void> {
 export async function syncTasks(tasks: Task[]): Promise<void> {
   const user = await getUser()
   if (!user || tasks.length === 0) return
+  tasks.forEach(t => suppressEcho(t.id))
   await supabase.from('tasks').upsert(tasks.map(t => taskToDb(t, user.id)), { onConflict: 'id' })
 }
 
@@ -120,9 +132,11 @@ export function subscribeToChanges(userId: string, onUpdate: () => void): Realti
     .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `user_id=eq.${userId}` }, payload => {
       const data = getLocal()
       if (payload.eventType === 'DELETE') {
+        if (suppressTaskEchoes.has(payload.old.id)) return
         data.tasks = data.tasks.filter(t => t.id !== payload.old.id)
       } else {
         const task = dbToTask(payload.new as Record<string, unknown>)
+        if (suppressTaskEchoes.has(task.id)) return
         const idx = data.tasks.findIndex(t => t.id === task.id)
         if (idx !== -1) data.tasks[idx] = task
         else data.tasks.push(task)
