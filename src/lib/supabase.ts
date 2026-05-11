@@ -76,9 +76,9 @@ function suppressEcho(taskId: string) {
 
 // Sync a single task upsert
 export async function syncTask(task: Task): Promise<void> {
+  suppressEcho(task.id)
   const user = await getUser()
   if (!user) return
-  suppressEcho(task.id)
   await supabase.from('tasks').upsert(taskToDb(task, user.id), { onConflict: 'id' })
 }
 
@@ -96,9 +96,10 @@ export async function syncDeleteTask(id: string): Promise<void> {
 }
 
 export async function syncTasks(tasks: Task[]): Promise<void> {
-  const user = await getUser()
-  if (!user || tasks.length === 0) return
+  if (tasks.length === 0) return
   tasks.forEach(t => suppressEcho(t.id))
+  const user = await getUser()
+  if (!user) return
   await supabase.from('tasks').upsert(tasks.map(t => taskToDb(t, user.id)), { onConflict: 'id' })
 }
 

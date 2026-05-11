@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
   ArrowLeft, Plus, CheckCircle2, Circle, Lightbulb, ArrowUp,
   Trash2, ArrowDown, X, GripVertical, Zap, Link2, FileText
@@ -41,15 +41,25 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [requeuedIds, setRequeuedIds] = useState<Set<string>>(new Set())
 
-  const active = getActiveTask(project.id)
-  const queued = getQueuedTasks(project.id)
-  const done = getCompletedTasks(project.id)
+  const baseActive = getActiveTask(project.id)
+  const baseQueued = getQueuedTasks(project.id)
+  const baseDone = getCompletedTasks(project.id)
   const ideas = getIdeas(project.id)
+
+  // Optimistic requeue: remove from done, inject into queued/active
+  const requeuedTasks = baseDone
+    .filter(t => requeuedIds.has(t.id))
+    .map(t => ({ ...t, status: (baseActive ? 'queued' : 'active') as Task['status'], completedAt: undefined }))
+  const active = baseActive ?? (requeuedTasks.find(t => t.status === 'active') || null)
+  const queued = [...baseQueued, ...requeuedTasks.filter(t => t.status === 'queued')]
+  const done = baseDone.filter(t => !requeuedIds.has(t.id))
+
   const total = (active ? 1 : 0) + queued.length + done.length
   const pct = total > 0 ? Math.round((done.length / total) * 100) : 0
 
-  function bump() { setRefresh(r => r + 1); onUpdate() }
+  function bump() { setRequeuedIds(new Set()); setRefresh(r => r + 1); onUpdate() }
 
   function handleAdd() {
     if (!newTitle.trim() || !addMode) return
@@ -300,7 +310,7 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
             {showDone && (
               <div className="flex flex-col gap-2">
                 {done.map(task => (
-                  <DoneTaskRow key={task.id} task={task} onOpen={() => { setEditingTitle(false); setTaskView(task) }} onRequeue={() => { requeueTask(task.id); bump() }} />
+                  <DoneTaskRow key={task.id} task={task} onOpen={() => { setEditingTitle(false); setTaskView(task) }} onRequeue={() => { requeueTask(task.id); setRequeuedIds(prev => { const n = new Set(prev); n.add(task.id); return n }) }} />
                 ))}
               </div>
             )}
@@ -379,16 +389,32 @@ function QueuedTaskRow({ task, position, onDelete, onOpen, onComplete, onMakeFoc
   onDrop: () => void
   onDragEnd: () => void
 }) {
-  const [completing, setCompleting] = useState(false)
+  const [checked, setChecked] = useState(false)
+  const [rippling, setRippling] = useState(false)
+  const [gone, setGone] = useState(false)
+  const [hovered, setHovered] = useState(false)
+
+  const handleCheck = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (checked) return
+    setChecked(true)
+    setRippling(true)
+    setTimeout(() => {
+      setGone(true)
+      setTimeout(() => { onComplete() }, 420)
+    }, 1200)
+  }, [checked, onComplete])
+
+  if (gone) return null
 
   return (
     <div
-      draggable={!completing}
+      draggable={!checked}
       onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart() }}
       onDragOver={e => { e.preventDefault(); onDragOver() }}
       onDrop={e => { e.preventDefault(); onDrop() }}
       onDragEnd={onDragEnd}
-      className="bg-[var(--bg-card)] border rounded-[var(--radius-sm)] transition-colors overflow-hidden"
+      className={`bg-[var(--bg-card)] border rounded-[var(--radius-sm)] transition-colors overflow-hidden${checked ? ' task-card-bounce' : ''}${gone ? ' task-row-fadeout' : ''}`}
       style={{
         borderColor: isDragOver ? 'var(--accent)' : 'var(--border)',
         opacity: isDragging ? 0.4 : 1,
@@ -396,7 +422,7 @@ function QueuedTaskRow({ task, position, onDelete, onOpen, onComplete, onMakeFoc
       }}
     >
       <div
-        onClick={!completing ? onOpen : undefined}
+        onClick={!checked ? onOpen : undefined}
         className="flex items-center gap-3 px-4 py-3 group cursor-pointer hover:bg-[var(--bg-subtle)] transition-colors"
       >
         <span
@@ -407,22 +433,47 @@ function QueuedTaskRow({ task, position, onDelete, onOpen, onComplete, onMakeFoc
         </span>
         <span className="text-xs text-[var(--text-muted)] w-4 text-right flex-shrink-0">{position}</span>
         <button
-          onClick={e => { e.stopPropagation(); setCompleting(v => !v) }}
-          className="text-[var(--border-strong)] hover:text-[var(--accent)] transition-colors flex-shrink-0"
+          onClick={handleCheck}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          className="flex-shrink-0 focus:outline-none"
           title="Mark done"
         >
-          {completing ? <CheckCircle2 size={14} className="text-[var(--accent)]" /> : <Circle size={14} />}
+          <svg width="14" height="14" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', overflow: 'visible' }}>
+            {rippling && (
+              <circle cx="9" cy="9" r="7" fill="none" stroke="var(--accent)" strokeWidth="2" className="task-ripple" onAnimationEnd={() => setRippling(false)} />
+            )}
+            <circle
+              cx="9" cy="9" r="7.5"
+              stroke={checked ? '#087821' : hovered ? '#087821' : 'var(--border-strong)'}
+              strokeWidth="1.5"
+              fill={checked || hovered ? '#087821' : 'none'}
+              fillOpacity={checked ? 1 : hovered ? 0.2 : 0}
+              style={{ transition: 'stroke 160ms, fill 160ms, fill-opacity 160ms' }}
+            />
+            {checked && (
+              <polyline
+                points="5.5,9 8,11.5 12.5,6.5"
+                stroke="white"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+                className="task-check-draw"
+              />
+            )}
+          </svg>
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="text-sm text-[var(--text-primary)] truncate">{task.title}</p>
+            <p className={`text-sm truncate transition-colors${checked ? ' line-through text-[var(--text-muted)]' : ' text-[var(--text-primary)]'}`}>{task.title}</p>
             {task.links && task.links.length > 0 && (
               <Link2 size={11} className="text-[var(--text-muted)] flex-shrink-0" />
             )}
           </div>
           {task.notes && <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">{task.notes}</p>}
         </div>
-        <div className="flex items-center gap-6 opacity-0 group-hover:opacity-100 transition-all">
+        <div className={`flex items-center gap-6 transition-all${checked ? ' opacity-0' : ' opacity-0 group-hover:opacity-100'}`}>
           {hasActiveFocus && (
             <button
               onClick={e => { e.stopPropagation(); onMakeFocus() }}
@@ -440,16 +491,6 @@ function QueuedTaskRow({ task, position, onDelete, onOpen, onComplete, onMakeFoc
           </button>
         </div>
       </div>
-
-      {completing && (
-        <div className="px-4 pb-4 animate-slide-in border-t border-[var(--border)] pt-3">
-          <CompleteForm
-            onConfirm={r => { onComplete(r); setCompleting(false) }}
-            onCancel={() => setCompleting(false)}
-            initialValue={task.reflection}
-          />
-        </div>
-      )}
     </div>
   )
 }
@@ -495,17 +536,28 @@ function IdeaRow({ idea, onPromote, onDelete, onOpen }: {
 }
 
 function DoneTaskRow({ task, onOpen, onRequeue }: { task: Task; onOpen: () => void; onRequeue: () => void }) {
+  const [unchecking, setUnchecking] = useState(false)
+
+  function handleRequeue(e: React.MouseEvent) {
+    e.stopPropagation()
+    setUnchecking(true)
+    setTimeout(() => { onRequeue() }, 320)
+  }
+
   return (
     <div
-      onClick={onOpen}
+      onClick={!unchecking ? onOpen : undefined}
       className="flex items-center gap-3 px-4 py-3 bg-[var(--bg-subtle)] border border-[var(--border)] rounded-[var(--radius-sm)] cursor-pointer hover:bg-[#D67402]/20 transition-colors"
     >
       <button
-        onClick={e => { e.stopPropagation(); onRequeue() }}
+        onClick={handleRequeue}
+        disabled={unchecking}
         className="flex-shrink-0 text-[var(--accent)] hover:text-[var(--text-muted)] transition-colors"
         title="Move back to queue"
       >
-        <CheckCircle2 size={14} />
+        <span className={unchecking ? 'task-uncheck-icon inline-flex' : 'inline-flex'}>
+          {unchecking ? <Circle size={14} className="text-[var(--text-muted)]" /> : <CheckCircle2 size={14} />}
+        </span>
       </button>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-[var(--text-secondary)] line-through">{task.title}</p>
