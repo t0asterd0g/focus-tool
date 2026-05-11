@@ -42,7 +42,18 @@ export default function AuthGate({ children }: Props) {
     const remote = await pullFromSupabase()
     const local = loadData()
     if (remote && (remote.projects.length > 0 || remote.tasks.length > 0)) {
-      saveData(remote)
+      if (local.projects.length > 0 || local.tasks.length > 0) {
+        // Both sides have data: merge with local deletions winning.
+        // Remote-only items (added on another device) are appended.
+        const localProjectIds = new Set(local.projects.map(p => p.id))
+        const localTaskIds = new Set(local.tasks.map(t => t.id))
+        saveData({
+          projects: [...local.projects, ...remote.projects.filter(p => !localProjectIds.has(p.id))],
+          tasks: [...local.tasks, ...remote.tasks.filter(t => !localTaskIds.has(t.id))],
+        })
+      } else {
+        saveData(remote)
+      }
       window.dispatchEvent(new CustomEvent('mastery-data-synced'))
     } else if (local.projects.length > 0 || local.tasks.length > 0) {
       await pushToSupabase(local)
