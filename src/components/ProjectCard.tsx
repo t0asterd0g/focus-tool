@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
-import { CheckCircle2, Circle, Flame } from 'lucide-react'
+import { CheckCircle2, Flame } from 'lucide-react'
 import { Project, Task, getActiveTask, getQueuedTasks, getCompletedTasks, completeTask, toggleProjectFocus } from '@/lib/store'
 import { Button, Badge, Divider, CompleteForm } from './ui'
 
@@ -52,7 +52,7 @@ export default function ProjectCard({ project, onUpdate, onOpen, compact = false
             <button
               onClick={handleFocusToggle}
               title={project.focused ? 'Remove focus' : 'Mark as focused'}
-              className={`transition-colors ${project.focused ? 'text-[var(--amber)]' : 'text-[var(--border-strong)] hover:text-[var(--amber)]'}`}
+              className={`w-11 h-11 flex items-center justify-center transition-colors ${project.focused ? 'text-[var(--amber)]' : 'text-[var(--border-strong)] hover:text-[var(--amber)]'}`}
             >
               <Flame size={14} />
             </button>
@@ -76,7 +76,7 @@ export default function ProjectCard({ project, onUpdate, onOpen, compact = false
             <button
               onClick={handleFocusToggle}
               title={project.focused ? 'Remove focus' : 'Mark as focused'}
-              className={`transition-colors ${project.focused ? 'text-[var(--amber)]' : 'text-[var(--border-strong)] hover:text-[var(--amber)]'}`}
+              className={`w-11 h-11 flex items-center justify-center transition-colors ${project.focused ? 'text-[var(--amber)]' : 'text-[var(--border-strong)] hover:text-[var(--amber)]'}`}
             >
               <Flame size={16} />
             </button>
@@ -111,6 +111,7 @@ export default function ProjectCard({ project, onUpdate, onOpen, compact = false
 
 function ActiveTaskRow({ task, onUpdate }: { task: Task; onUpdate: () => void }) {
   const [completing, setCompleting] = useState(false)
+  const [hovered, setHovered] = useState(false)
 
   if (completing) {
     return (
@@ -129,10 +130,21 @@ function ActiveTaskRow({ task, onUpdate }: { task: Task; onUpdate: () => void })
     <div className="flex items-start gap-3">
       <button
         onClick={() => setCompleting(true)}
-        className="mt-0.5 text-[var(--border-strong)] hover:text-[var(--accent)] transition-colors flex-shrink-0"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className="mt-0.5 flex-shrink-0"
         title="Mark done"
       >
-        <Circle size={16} />
+        <svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+          <circle
+            cx="9" cy="9" r="7.5"
+            stroke={hovered ? '#087821' : 'var(--border-strong)'}
+            strokeWidth="1.5"
+            fill={hovered ? '#087821' : 'none'}
+            fillOpacity={hovered ? 0.2 : 0}
+            style={{ transition: 'stroke 160ms, fill 160ms, fill-opacity 160ms' }}
+          />
+        </svg>
       </button>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-[var(--text-primary)] leading-snug">{task.title}</p>

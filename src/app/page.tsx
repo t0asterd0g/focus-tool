@@ -246,7 +246,7 @@ function TodayStrip({ projects, onRefresh, onOpenTask }: { projects: Project[]; 
 }
 
 // Derive a stable accent color per project from its id
-const PROJECT_COLORS = ['#2D6A4F', '#6366F1', '#D97706', '#DB2777', '#0891B2', '#7C3AED', '#059669']
+const PROJECT_COLORS = ['#087821', '#6366F1', '#D97706', '#DB2777', '#0891B2', '#7C3AED', '#059669']
 function projectColor(project: Project): string {
   let h = 0
   for (let i = 0; i < project.id.length; i++) h = (h * 31 + project.id.charCodeAt(i)) >>> 0
@@ -305,10 +305,11 @@ function TodayFocusRow({ project, task, onRefresh, onOpen }: { project: Project;
             {/* Outer ring */}
             <circle
               cx="9" cy="9" r="7.5"
-              stroke={checked ? color : hovered ? color : 'var(--border-strong)'}
+              stroke={checked ? '#087821' : hovered ? '#087821' : 'var(--border-strong)'}
               strokeWidth="1.5"
-              fill={checked ? color : hovered ? `${color}33` : 'none'}
-              style={{ transition: 'stroke 160ms, fill 160ms' }}
+              fill={checked || hovered ? '#087821' : 'none'}
+              fillOpacity={checked ? 1 : hovered ? 0.2 : 0}
+              style={{ transition: 'stroke 160ms, fill 160ms, fill-opacity 160ms' }}
             />
             {/* Checkmark — only when checked */}
             {checked && (
