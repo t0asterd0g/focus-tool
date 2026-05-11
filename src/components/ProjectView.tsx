@@ -327,7 +327,7 @@ function ActiveTaskCard({ task, onComplete, onOpen }: {
   return (
     <Card className="px-5 pt-5 pb-4">
       <div className="flex items-start gap-3 mb-2">
-        <div className="w-2 h-2 rounded-full mt-1 flex-shrink-0" style={{ background: 'var(--accent)' }} />
+        <div className="w-2 h-2 rounded-full mt-2 flex-shrink-0" style={{ background: 'var(--accent)' }} />
         <div className="flex-1 cursor-pointer" onClick={onOpen}>
           <div className="flex items-center gap-2">
             <p className="font-medium text-[var(--text-primary)] leading-snug text-base hover:text-[var(--text-secondary)] transition-colors">{task.title}</p>
@@ -339,7 +339,7 @@ function ActiveTaskCard({ task, onComplete, onOpen }: {
             <p className="text-sm text-[var(--text-secondary)] leading-relaxed line-clamp-2">{task.notes}</p>
           )}
         </div>
-        <Badge color="green">Active</Badge>
+        <div className="mt-2"><Badge color="green">Active</Badge></div>
       </div>
 
       {!completing ? (
