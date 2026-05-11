@@ -38,21 +38,43 @@ export default function AuthGate({ children }: Props) {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function syncOnLogin() {
-    const local = loadData()
-    if (local.projects.length > 0 || local.tasks.length > 0) {
-      // Local has data — trust it and skip the pull.
-      // The realtime subscription handles live changes from other devices.
-      return
-    }
-    // Local is empty (new device): pull from Supabase.
+  async function syncFromRemote() {
     const remote = await pullFromSupabase()
-    if (remote && (remote.projects.length > 0 || remote.tasks.length > 0)) {
-      saveData(remote)
+    if (!remote) return
+    const local = loadData()
+    if (remote.projects.length > 0 || remote.tasks.length > 0) {
+      const localProjectIds = new Set(local.projects.map(p => p.id))
+      const localTaskIds = new Set(local.tasks.map(t => t.id))
+      saveData({
+        projects: [...local.projects, ...remote.projects.filter(p => !localProjectIds.has(p.id))],
+        tasks: [...local.tasks, ...remote.tasks.filter(t => !localTaskIds.has(t.id))],
+      })
       window.dispatchEvent(new CustomEvent('mastery-data-synced'))
-    } else {
+    } else if (local.projects.length > 0 || local.tasks.length > 0) {
       await pushToSupabase(local)
     }
+  }
+
+  async function syncOnLogin() {
+    const local = loadData()
+    if (local.projects.length === 0 && local.tasks.length === 0) {
+      await syncFromRemote()
+    }
+    // Re-sync when the user returns to the tab after being away 5+ minutes,
+    // to catch changes from other devices if the realtime channel dropped.
+    const RESYNC_MS = 5 * 60 * 1000
+    let hiddenAt = 0
+    function handleVisibility() {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now()
+      } else if (hiddenAt > 0 && Date.now() - hiddenAt >= RESYNC_MS) {
+        syncFromRemote().catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    // Cleanup is handled by the auth subscription teardown in practice,
+    // but store the remover so the effect can call it if needed.
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
   }
 
   async function handleSignOut() {
