@@ -56,10 +56,7 @@ export default function AuthGate({ children }: Props) {
   }
 
   async function syncOnLogin() {
-    const local = loadData()
-    if (local.projects.length === 0 && local.tasks.length === 0) {
-      await syncFromRemote()
-    }
+    await syncFromRemote()
     // Re-sync when the user returns to the tab after being away 5+ minutes,
     // to catch changes from other devices if the realtime channel dropped.
     const RESYNC_MS = 5 * 60 * 1000
