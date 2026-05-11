@@ -339,7 +339,7 @@ function ActiveTaskCard({ task, onComplete, onOpen }: {
             <p className="text-sm text-[var(--text-secondary)] leading-relaxed line-clamp-2">{task.notes}</p>
           )}
         </div>
-        <div className="mt-2"><Badge color="green">Active</Badge></div>
+        <Badge color="green">Active</Badge>
       </div>
 
       {!completing ? (
