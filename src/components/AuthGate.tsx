@@ -43,6 +43,7 @@ export default function AuthGate({ children }: Props) {
     const local = loadData()
     if (remote && (remote.projects.length > 0 || remote.tasks.length > 0)) {
       saveData(remote)
+      window.dispatchEvent(new CustomEvent('mastery-data-synced'))
     } else if (local.projects.length > 0 || local.tasks.length > 0) {
       await pushToSupabase(local)
     }

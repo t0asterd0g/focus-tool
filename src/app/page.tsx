@@ -52,6 +52,13 @@ function App({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
     return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
+  // Re-read localStorage after AuthGate finishes syncing from Supabase on login
+  useEffect(() => {
+    function handleSync() { refreshRef.current() }
+    window.addEventListener('mastery-data-synced', handleSync)
+    return () => window.removeEventListener('mastery-data-synced', handleSync)
+  }, [])
+
   useEffect(() => {
     setMounted(true)
     const data = loadData()
