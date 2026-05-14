@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   ArrowLeft, Plus, CheckCircle2, Circle, Lightbulb, ArrowUp,
   Trash2, ArrowDown, X, GripVertical, Zap, Link2, FileText
@@ -42,6 +42,11 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [requeuedIds, setRequeuedIds] = useState<Set<string>>(new Set())
+  const [touchDragId, setTouchDragId] = useState<string | null>(null)
+  const [touchDragOverId, setTouchDragOverId] = useState<string | null>(null)
+  const [touchGhost, setTouchGhost] = useState<{ y: number; title: string } | null>(null)
+  const touchDragIdRef = useRef<string | null>(null)
+  const touchDragOverIdRef = useRef<string | null>(null)
 
   const baseActive = getActiveTask(project.id)
   const baseQueued = getQueuedTasks(project.id)
@@ -91,6 +96,61 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
     swapActiveTask(taskId)
     bump()
   }
+
+  function handleTouchDragStart(taskId: string, clientY: number, title: string) {
+    touchDragIdRef.current = taskId
+    touchDragOverIdRef.current = taskId
+    setTouchDragId(taskId)
+    setTouchDragOverId(taskId)
+    setTouchGhost({ y: clientY, title })
+  }
+
+  useEffect(() => {
+    if (!touchDragId) return
+
+    function onTouchMove(e: TouchEvent) {
+      const touch = e.touches[0]
+      setTouchGhost(g => g ? { ...g, y: touch.clientY } : null)
+
+      // Find which task row is under the finger
+      const el = document.elementFromPoint(touch.clientX, touch.clientY)
+      const row = el?.closest('[data-task-id]') as HTMLElement | null
+      const overId = row?.dataset.taskId ?? null
+      if (overId && overId !== touchDragOverIdRef.current) {
+        touchDragOverIdRef.current = overId
+        setTouchDragOverId(overId)
+      }
+    }
+
+    function onTouchEnd() {
+      const fromId = touchDragIdRef.current
+      const toId = touchDragOverIdRef.current
+      if (fromId && toId && fromId !== toId) {
+        const ids = getQueuedTasks(project.id).map(t => t.id)
+        const from = ids.indexOf(fromId)
+        const to = ids.indexOf(toId)
+        if (from !== -1 && to !== -1) {
+          const reordered = [...ids]
+          reordered.splice(from, 1)
+          reordered.splice(to, 0, fromId)
+          reorderTasks(project.id, reordered)
+          bump()
+        }
+      }
+      touchDragIdRef.current = null
+      touchDragOverIdRef.current = null
+      setTouchDragId(null)
+      setTouchDragOverId(null)
+      setTouchGhost(null)
+    }
+
+    document.addEventListener('touchmove', onTouchMove, { passive: true })
+    document.addEventListener('touchend', onTouchEnd)
+    return () => {
+      document.removeEventListener('touchmove', onTouchMove)
+      document.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [touchDragId, project.id])
 
   // Task detail view
   if (taskView) {
@@ -227,15 +287,25 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
               <p className="text-sm text-[var(--text-muted)]">No tasks queued. Add some steps to build towards your goal.</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 relative">
+              {touchGhost && (
+                <div
+                  className="fixed left-4 right-4 z-50 pointer-events-none"
+                  style={{ top: touchGhost.y - 20, transform: 'scale(1.03)', opacity: 0.9 }}
+                >
+                  <div className="bg-[var(--bg-card)] border-2 border-[var(--accent)] rounded-[var(--radius-sm)] px-4 py-3 shadow-lg">
+                    <p className="text-sm text-[var(--text-primary)] truncate">{touchGhost.title}</p>
+                  </div>
+                </div>
+              )}
               {queued.map((task, i) => (
                 <QueuedTaskRow
                   key={task.id}
                   task={task}
                   position={i + 1}
                   hasActiveFocus={!!active}
-                  isDragging={dragId === task.id}
-                  isDragOver={dragOverId === task.id}
+                  isDragging={dragId === task.id || touchDragId === task.id}
+                  isDragOver={dragOverId === task.id || (touchDragOverId === task.id && touchDragId !== task.id)}
                   onDelete={() => { deleteTask(task.id); bump() }}
                   onOpen={() => { setEditingTitle(false); setTaskView(task) }}
                   onComplete={(reflection) => { handleComplete(task.id, reflection) }}
@@ -244,6 +314,7 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
                   onDragOver={() => setDragOverId(task.id)}
                   onDrop={() => handleDrop(task.id)}
                   onDragEnd={() => { setDragId(null); setDragOverId(null) }}
+                  onTouchDragStart={(clientY) => handleTouchDragStart(task.id, clientY, task.title)}
                 />
               ))}
             </div>
@@ -374,7 +445,7 @@ function ActiveTaskCard({ task, onComplete, onOpen }: {
   )
 }
 
-function QueuedTaskRow({ task, position, onDelete, onOpen, onComplete, onMakeFocus, hasActiveFocus, isDragging, isDragOver, onDragStart, onDragOver, onDrop, onDragEnd }: {
+function QueuedTaskRow({ task, position, onDelete, onOpen, onComplete, onMakeFocus, hasActiveFocus, isDragging, isDragOver, onDragStart, onDragOver, onDrop, onDragEnd, onTouchDragStart }: {
   task: Task
   position: number
   hasActiveFocus: boolean
@@ -388,11 +459,13 @@ function QueuedTaskRow({ task, position, onDelete, onOpen, onComplete, onMakeFoc
   onDragOver: () => void
   onDrop: () => void
   onDragEnd: () => void
+  onTouchDragStart: (clientY: number) => void
 }) {
   const [checked, setChecked] = useState(false)
   const [rippling, setRippling] = useState(false)
   const [gone, setGone] = useState(false)
   const [hovered, setHovered] = useState(false)
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleCheck = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -409,6 +482,7 @@ function QueuedTaskRow({ task, position, onDelete, onOpen, onComplete, onMakeFoc
 
   return (
     <div
+      data-task-id={task.id}
       draggable={!checked}
       onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart() }}
       onDragOver={e => { e.preventDefault(); onDragOver() }}
@@ -426,8 +500,21 @@ function QueuedTaskRow({ task, position, onDelete, onOpen, onComplete, onMakeFoc
         className="flex items-center gap-3 px-4 py-3 group cursor-pointer hover:bg-[var(--bg-subtle)] transition-colors"
       >
         <span
-          className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing flex-shrink-0"
+          className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-40 touch-none transition-opacity cursor-grab active:cursor-grabbing flex-shrink-0"
           onClick={e => e.stopPropagation()}
+          onTouchStart={e => {
+            if (checked) return
+            const clientY = e.touches[0].clientY
+            holdTimerRef.current = setTimeout(() => {
+              onTouchDragStart(clientY)
+            }, 300)
+          }}
+          onTouchMove={() => {
+            if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null }
+          }}
+          onTouchEnd={() => {
+            if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null }
+          }}
         >
           <GripVertical size={13} />
         </span>
