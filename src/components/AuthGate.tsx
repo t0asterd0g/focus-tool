@@ -43,11 +43,13 @@ export default function AuthGate({ children }: Props) {
     if (!remote) return
     const local = loadData()
     if (remote.projects.length > 0 || remote.tasks.length > 0) {
-      const localProjectIds = new Set(local.projects.map(p => p.id))
-      const localTaskIds = new Set(local.tasks.map(t => t.id))
+      // Remote wins for any item that exists in both — ensures desktop changes
+      // propagate to devices that already have a stale local copy.
+      const remoteProjectIds = new Set(remote.projects.map(p => p.id))
+      const remoteTaskIds = new Set(remote.tasks.map(t => t.id))
       saveData({
-        projects: [...local.projects, ...remote.projects.filter(p => !localProjectIds.has(p.id))],
-        tasks: [...local.tasks, ...remote.tasks.filter(t => !localTaskIds.has(t.id))],
+        projects: [...remote.projects, ...local.projects.filter(p => !remoteProjectIds.has(p.id))],
+        tasks: [...remote.tasks, ...local.tasks.filter(t => !remoteTaskIds.has(t.id))],
       })
       window.dispatchEvent(new CustomEvent('mastery-data-synced'))
     } else if (local.projects.length > 0 || local.tasks.length > 0) {
