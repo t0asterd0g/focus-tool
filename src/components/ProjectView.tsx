@@ -43,10 +43,12 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [requeuedIds, setRequeuedIds] = useState<Set<string>>(new Set())
   const [touchDragId, setTouchDragId] = useState<string | null>(null)
-  const [touchDragOverId, setTouchDragOverId] = useState<string | null>(null)
+  // insertAfter: null = insert at top, string = insert after that task id
+  const [touchInsertAfter, setTouchInsertAfter] = useState<string | 'top' | null>(null)
   const [touchGhost, setTouchGhost] = useState<{ y: number; title: string } | null>(null)
   const touchDragIdRef = useRef<string | null>(null)
-  const touchDragOverIdRef = useRef<string | null>(null)
+  const touchInsertAfterRef = useRef<string | 'top' | null>(null)
+  const queueListRef = useRef<HTMLDivElement>(null)
 
   const baseActive = getActiveTask(project.id)
   const baseQueued = getQueuedTasks(project.id)
@@ -99,52 +101,82 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
 
   function handleTouchDragStart(taskId: string, clientY: number, title: string) {
     touchDragIdRef.current = taskId
-    touchDragOverIdRef.current = taskId
+    touchInsertAfterRef.current = null
     setTouchDragId(taskId)
-    setTouchDragOverId(taskId)
+    setTouchInsertAfter(null)
     setTouchGhost({ y: clientY, title })
+    // Prevent text selection during drag
+    document.body.style.userSelect = 'none'
+    document.body.style.webkitUserSelect = 'none'
+    // Haptic feedback if available
+    if (navigator.vibrate) navigator.vibrate(30)
   }
 
   useEffect(() => {
     if (!touchDragId) return
 
+    function getInsertAfterFromY(touchY: number): string | 'top' | null {
+      const list = queueListRef.current
+      if (!list) return null
+      const rows = Array.from(list.querySelectorAll<HTMLElement>('[data-task-id]'))
+      if (rows.length === 0) return null
+      // Find the row whose midpoint the finger is above
+      for (let i = 0; i < rows.length; i++) {
+        const rect = rows[i].getBoundingClientRect()
+        const mid = rect.top + rect.height / 2
+        if (touchY < mid) {
+          return i === 0 ? 'top' : (rows[i - 1].dataset.taskId ?? null)
+        }
+      }
+      // Below all rows → insert after last
+      return rows[rows.length - 1].dataset.taskId ?? null
+    }
+
     function onTouchMove(e: TouchEvent) {
+      e.preventDefault() // prevent scroll + text selection
       const touch = e.touches[0]
       setTouchGhost(g => g ? { ...g, y: touch.clientY } : null)
-
-      // Find which task row is under the finger
-      const el = document.elementFromPoint(touch.clientX, touch.clientY)
-      const row = el?.closest('[data-task-id]') as HTMLElement | null
-      const overId = row?.dataset.taskId ?? null
-      if (overId && overId !== touchDragOverIdRef.current) {
-        touchDragOverIdRef.current = overId
-        setTouchDragOverId(overId)
+      const insertAfter = getInsertAfterFromY(touch.clientY)
+      if (insertAfter !== touchInsertAfterRef.current) {
+        touchInsertAfterRef.current = insertAfter
+        setTouchInsertAfter(insertAfter)
       }
     }
 
     function onTouchEnd() {
       const fromId = touchDragIdRef.current
-      const toId = touchDragOverIdRef.current
-      if (fromId && toId && fromId !== toId) {
+      const insertAfter = touchInsertAfterRef.current
+      if (fromId && insertAfter !== null) {
         const ids = getQueuedTasks(project.id).map(t => t.id)
         const from = ids.indexOf(fromId)
-        const to = ids.indexOf(toId)
-        if (from !== -1 && to !== -1) {
-          const reordered = [...ids]
-          reordered.splice(from, 1)
-          reordered.splice(to, 0, fromId)
-          reorderTasks(project.id, reordered)
-          bump()
+        if (from !== -1) {
+          const reordered = ids.filter(id => id !== fromId)
+          if (insertAfter === 'top') {
+            reordered.unshift(fromId)
+          } else {
+            const afterIdx = reordered.indexOf(insertAfter)
+            if (afterIdx !== -1) {
+              reordered.splice(afterIdx + 1, 0, fromId)
+            } else {
+              reordered.push(fromId)
+            }
+          }
+          if (reordered.join() !== ids.join()) {
+            reorderTasks(project.id, reordered)
+            bump()
+          }
         }
       }
       touchDragIdRef.current = null
-      touchDragOverIdRef.current = null
+      touchInsertAfterRef.current = null
       setTouchDragId(null)
-      setTouchDragOverId(null)
+      setTouchInsertAfter(null)
       setTouchGhost(null)
+      document.body.style.userSelect = ''
+      document.body.style.webkitUserSelect = ''
     }
 
-    document.addEventListener('touchmove', onTouchMove, { passive: true })
+    document.addEventListener('touchmove', onTouchMove, { passive: false })
     document.addEventListener('touchend', onTouchEnd)
     return () => {
       document.removeEventListener('touchmove', onTouchMove)
@@ -287,35 +319,45 @@ export default function ProjectView({ project, onBack, onUpdate, initialTaskId, 
               <p className="text-sm text-[var(--text-muted)]">No tasks queued. Add some steps to build towards your goal.</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-2 relative">
+            <div className="flex flex-col gap-2 relative" ref={queueListRef}>
+              {/* Asana-style floating ghost: hovers above finger so it's always visible */}
               {touchGhost && (
                 <div
                   className="fixed left-4 right-4 z-50 pointer-events-none"
-                  style={{ top: touchGhost.y - 20, transform: 'scale(1.03)', opacity: 0.9 }}
+                  style={{ top: touchGhost.y - 80, transform: 'scale(1.04) rotate(-0.5deg)', opacity: 0.95 }}
                 >
-                  <div className="bg-[var(--bg-card)] border-2 border-[var(--accent)] rounded-[var(--radius-sm)] px-4 py-3 shadow-lg">
-                    <p className="text-sm text-[var(--text-primary)] truncate">{touchGhost.title}</p>
+                  <div className="bg-[var(--bg-card)] border-2 border-[var(--accent)] rounded-[var(--radius-sm)] px-4 py-3 shadow-2xl">
+                    <p className="text-sm font-medium text-[var(--text-primary)] truncate">{touchGhost.title}</p>
                   </div>
                 </div>
               )}
+              {/* Top insertion line */}
+              {touchDragId && touchInsertAfter === 'top' && (
+                <div className="h-0.5 rounded-full bg-[var(--accent)] mx-1 -mb-1" />
+              )}
               {queued.map((task, i) => (
-                <QueuedTaskRow
-                  key={task.id}
-                  task={task}
-                  position={i + 1}
-                  hasActiveFocus={!!active}
-                  isDragging={dragId === task.id || touchDragId === task.id}
-                  isDragOver={dragOverId === task.id || (touchDragOverId === task.id && touchDragId !== task.id)}
-                  onDelete={() => { deleteTask(task.id); bump() }}
-                  onOpen={() => { setEditingTitle(false); setTaskView(task) }}
-                  onComplete={(reflection) => { handleComplete(task.id, reflection) }}
-                  onMakeFocus={() => handleMakeFocus(task.id)}
-                  onDragStart={() => setDragId(task.id)}
-                  onDragOver={() => setDragOverId(task.id)}
-                  onDrop={() => handleDrop(task.id)}
-                  onDragEnd={() => { setDragId(null); setDragOverId(null) }}
-                  onTouchDragStart={(clientY) => handleTouchDragStart(task.id, clientY, task.title)}
-                />
+                <div key={task.id}>
+                  <QueuedTaskRow
+                    task={task}
+                    position={i + 1}
+                    hasActiveFocus={!!active}
+                    isDragging={dragId === task.id || touchDragId === task.id}
+                    isDragOver={dragOverId === task.id}
+                    onDelete={() => { deleteTask(task.id); bump() }}
+                    onOpen={() => { setEditingTitle(false); setTaskView(task) }}
+                    onComplete={(reflection) => { handleComplete(task.id, reflection) }}
+                    onMakeFocus={() => handleMakeFocus(task.id)}
+                    onDragStart={() => setDragId(task.id)}
+                    onDragOver={() => setDragOverId(task.id)}
+                    onDrop={() => handleDrop(task.id)}
+                    onDragEnd={() => { setDragId(null); setDragOverId(null) }}
+                    onTouchDragStart={(clientY) => handleTouchDragStart(task.id, clientY, task.title)}
+                  />
+                  {/* Insertion line after this row */}
+                  {touchDragId && touchInsertAfter === task.id && touchDragId !== task.id && (
+                    <div className="h-0.5 rounded-full bg-[var(--accent)] mx-1 mt-1" />
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -497,26 +539,48 @@ function QueuedTaskRow({ task, position, onDelete, onOpen, onComplete, onMakeFoc
     >
       <div
         onClick={!checked ? onOpen : undefined}
-        className="flex items-center gap-3 px-4 py-3 group cursor-pointer hover:bg-[var(--bg-subtle)] transition-colors"
+        className="flex items-center gap-3 px-4 py-3 group cursor-pointer hover:bg-[var(--bg-subtle)] transition-colors select-none"
+        style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
+        onTouchStart={e => {
+          if (checked) return
+          // Block text selection immediately — before any timer fires
+          document.body.style.userSelect = 'none'
+          ;(document.body.style as CSSStyleDeclaration & { webkitUserSelect: string }).webkitUserSelect = 'none'
+          const clientY = e.touches[0].clientY
+          const startX = e.touches[0].clientX
+          holdTimerRef.current = setTimeout(() => {
+            holdTimerRef.current = null
+            onTouchDragStart(clientY)
+          }, 300)
+          // Cancel if finger moves significantly (user is scrolling)
+          const onMove = (ev: TouchEvent) => {
+            const dx = ev.touches[0].clientX - startX
+            const dy = ev.touches[0].clientY - clientY
+            if (Math.sqrt(dx * dx + dy * dy) > 8) {
+              if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null }
+              document.body.style.userSelect = ''
+              ;(document.body.style as CSSStyleDeclaration & { webkitUserSelect: string }).webkitUserSelect = ''
+              document.removeEventListener('touchmove', onMove)
+              document.removeEventListener('touchend', onEnd)
+            }
+          }
+          const onEnd = () => {
+            if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null }
+            document.body.style.userSelect = ''
+            ;(document.body.style as CSSStyleDeclaration & { webkitUserSelect: string }).webkitUserSelect = ''
+            document.removeEventListener('touchmove', onMove)
+            document.removeEventListener('touchend', onEnd)
+          }
+          document.addEventListener('touchmove', onMove, { passive: true })
+          document.addEventListener('touchend', onEnd, { once: true })
+        }}
       >
+        {/* Grip handle — visual hint only on mobile, functional on desktop */}
         <span
-          className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-40 touch-none transition-opacity cursor-grab active:cursor-grabbing flex-shrink-0"
+          className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-50 touch-none select-none transition-opacity flex-shrink-0"
           onClick={e => e.stopPropagation()}
-          onTouchStart={e => {
-            if (checked) return
-            const clientY = e.touches[0].clientY
-            holdTimerRef.current = setTimeout(() => {
-              onTouchDragStart(clientY)
-            }, 300)
-          }}
-          onTouchMove={() => {
-            if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null }
-          }}
-          onTouchEnd={() => {
-            if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null }
-          }}
         >
-          <GripVertical size={13} />
+          <GripVertical size={16} />
         </span>
         <span className="text-xs text-[var(--text-muted)] w-4 text-right flex-shrink-0">{position}</span>
         <button
